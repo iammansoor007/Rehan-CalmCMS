@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About Us | CalmTouch - Massage & Wellness Blog</title>
+  <meta name="description" content="Learn about CalmTouch's mission to provide simple, trustworthy, and science-backed massage and body wellness guides." />
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- 1. HEADER & NAVIGATION BAR -->
+  <header class="main-header">
+    <div class="container header-container">
+      <!-- Brand Logo -->
+      <a href="index.html" class="logo-wrapper">
+        <div class="logo-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.4 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
+          </svg>
+        </div>
+        <div class="logo-text-group">
+          <span class="logo-name">CalmTouch</span>
+          <span class="logo-tagline">Massage & Wellness Blog</span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav -->
+      <nav>
+        <ul class="nav-menu">
+          <li><a href="index.html" class="nav-link">Home</a></li>
+          
+          <!-- Categories Dropdown Menu -->
+          <li class="nav-dropdown">
+            <a href="category.html?cat=massage-therapy" class="nav-link dropdown-toggle">
+              Categories
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="dropdown-arrow">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </a>
+            <ul class="dropdown-menu">
+              <li><a href="category.html?cat=massage-therapy">Massage Therapy</a></li>
+              <li><a href="category.html?cat=pain-relief">Pain Relief</a></li>
+              <li><a href="category.html?cat=stress-sleep">Stress & Sleep</a></li>
+              <li><a href="category.html?cat=self-care">Self-Care</a></li>
+              <li><a href="category.html?cat=aromatherapy">Aromatherapy</a></li>
+              <li><a href="category.html?cat=recovery">Recovery</a></li>
+              <li class="dropdown-divider"></li>
+              <li><a href="category.html?cat=all">All Categories</a></li>
+            </ul>
+          </li>
+
+          <li><a href="category.html?cat=self-care" class="nav-link">Self-Care</a></li>
+          <li><a href="index.html#guide" class="nav-link">Guides</a></li>
+          <li><a href="about.html" class="nav-link active">About</a></li>
+          <li><a href="contact.html" class="nav-link">Contact</a></li>
+        </ul>
+      </nav>
+
+      <!-- Right Action & Mobile Toggle -->
+      <div class="header-actions">
+        <button class="search-trigger" id="search-trigger" aria-label="Search articles">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+
+        <button class="hamburger-btn" id="hamburger-btn" aria-label="Toggle navigation menu">
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Drawer Menu -->
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+  <aside class="mobile-drawer" id="mobile-drawer">
+    <div class="drawer-header">
+      <div class="logo-wrapper">
+        <div class="logo-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.4 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
+          </svg>
+        </div>
+        <span class="logo-name" style="font-size: 1.2rem;">CalmTouch</span>
+      </div>
+      <button class="close-drawer-btn" id="close-drawer-btn">&times;</button>
+    </div>
+    <ul class="mobile-nav-list">
+      <li><a href="index.html" class="mobile-nav-link">Home</a></li>
+      <li class="mobile-nav-header-item">
+        <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-primary); display: block; padding: 12px 16px 4px 16px;">Categories</span>
+      </li>
+      <li><a href="category.html?cat=massage-therapy" class="mobile-nav-link" style="padding-left: 28px;">• Massage Therapy</a></li>
+      <li><a href="category.html?cat=pain-relief" class="mobile-nav-link" style="padding-left: 28px;">• Pain Relief</a></li>
+      <li><a href="category.html?cat=stress-sleep" class="mobile-nav-link" style="padding-left: 28px;">• Stress & Sleep</a></li>
+      <li><a href="category.html?cat=self-care" class="mobile-nav-link" style="padding-left: 28px;">• Self-Care</a></li>
+      <li><a href="category.html?cat=aromatherapy" class="mobile-nav-link" style="padding-left: 28px;">• Aromatherapy</a></li>
+      <li><a href="category.html?cat=recovery" class="mobile-nav-link" style="padding-left: 28px;">• Recovery</a></li>
+      <li><a href="about.html" class="mobile-nav-link">About</a></li>
+      <li><a href="contact.html" class="mobile-nav-link">Contact</a></li>
+    </ul>
+  </aside>
+
+  <!-- 2. ABOUT US PAGE CONTENT -->
+  <main class="page-section">
+    <div class="container">
+      <!-- Breadcrumb Navigation -->
+      <div class="blog-breadcrumb">
+        <a href="index.html">Home</a>
+        <span class="sep">/</span>
+        <span class="active-crumb">About Us</span>
+      </div>
+
+      <!-- About Hero Banner -->
+      <div class="about-hero-banner">
+        <span class="badge-label">OUR STORY & MISSION</span>
+        <h1 class="about-hero-title">Empowering Everyday Body Wellness Through Mindful Touch & Care</h1>
+        <p class="about-hero-subtitle">
+          At CalmTouch, we believe self-care and massage therapy shouldn't be complex or intimidating. We provide simple, trustworthy, and science-backed guides to help you live with less tension and more everyday comfort.
+        </p>
+      </div>
+
+      <!-- Mission Cards Grid -->
+      <div class="about-mission-grid">
+        <div class="about-mission-card">
+          <div class="about-icon-box">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+          </div>
+          <h3>Evidence-Aligned Advice</h3>
+          <p>Every massage technique and stretch routine we publish is reviewed for safety, anatomical accuracy, and practical everyday application.</p>
+        </div>
+
+        <div class="about-mission-card">
+          <div class="about-icon-box">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+              <line x1="9" y1="9" x2="9.01" y2="9"></line>
+              <line x1="15" y1="9" x2="15.01" y2="9"></line>
+            </svg>
+          </div>
+          <h3>Accessible Self-Care</h3>
+          <p>We break down professional bodywork into easy 5-minute self-massage steps you can perform at home or right at your office desk.</p>
+        </div>
+
+        <div class="about-mission-card">
+          <div class="about-icon-box">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+          </div>
+          <h3>Holistic Wellbeing</h3>
+          <p>From aromatherapy essential oils to restful sleep habits, we support your body, mind, and nervous system in complete harmony.</p>
+        </div>
+      </div>
+
+      <!-- Stats Bar -->
+      <div class="about-stats-bar">
+        <div class="stat-item">
+          <span class="stat-number">50,000+</span>
+          <span class="stat-label">Monthly Readers</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">200+</span>
+          <span class="stat-label">Wellness Guides</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">15+</span>
+          <span class="stat-label">LMT Specialists</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">99.4%</span>
+          <span class="stat-label">Positive Feedback</span>
+        </div>
+      </div>
+
+      <!-- Editorial Team Section -->
+      <div style="margin-top: 64px;">
+        <div class="text-center" style="margin-bottom: 36px;">
+          <span class="badge-label">MEET OUR TEAM</span>
+          <h2 class="section-title">The People Behind CalmTouch</h2>
+          <p class="section-subtitle">Licensed massage therapists, wellness researchers, and bodywork advocates.</p>
+        </div>
+
+        <div class="team-grid">
+          <div class="team-card">
+            <div class="team-avatar-wrapper">
+              <img src="assets/images/article1.png" alt="Sarah Jenkins" class="team-avatar" />
+            </div>
+            <h3 class="team-name">Sarah Jenkins, LMT</h3>
+            <span class="team-role">Founder & Chief Editorial Advisor</span>
+            <p class="team-bio">With 12+ years of clinical massage experience, Sarah specializes in neuromuscular therapy and ergonomic pain relief for desk professionals.</p>
+          </div>
+
+          <div class="team-card">
+            <div class="team-avatar-wrapper">
+              <img src="assets/images/article2.png" alt="Dr. Elena Vance" class="team-avatar" />
+            </div>
+            <h3 class="team-name">Dr. Elena Vance</h3>
+            <span class="team-role">Physical Wellness Consultant</span>
+            <p class="team-bio">Passionate about myofascial release and spinal alignment, Dr. Vance ensures our stretching and massage guides adhere to clinical safety standards.</p>
+          </div>
+
+          <div class="team-card">
+            <div class="team-avatar-wrapper">
+              <img src="assets/images/article4.png" alt="Marcus Chen" class="team-avatar" />
+            </div>
+            <h3 class="team-name">Marcus Chen</h3>
+            <span class="team-role">Aromatherapy Specialist</span>
+            <p class="team-bio">Certified aromatherapist focusing on plant essential oil extracts, sleep quality, and sensory relaxation techniques for daily calm.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 3. FOOTER -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col-brand">
+          <div class="footer-logo">
+            <div class="logo-icon" style="background-color: rgba(255,255,255,0.1); color: var(--color-white);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.4 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
+              </svg>
+            </div>
+            <div>
+              <span class="footer-logo-title">CalmTouch</span>
+              <div class="footer-tagline">Massage & Wellness Blog</div>
+            </div>
+          </div>
+          <p class="footer-brand-desc">
+            Simple, trustworthy guidance for massage, recovery, relaxation, and everyday wellness.
+          </p>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Quick Links</h4>
+          <ul class="footer-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="about.html">About Us</a></li>
+            <li><a href="contact.html">Contact Us</a></li>
+            <li><a href="index.html#latest">All Articles</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Categories</h4>
+          <ul class="footer-links">
+            <li><a href="category.html?cat=massage-therapy">Massage Therapy</a></li>
+            <li><a href="category.html?cat=pain-relief">Pain Relief</a></li>
+            <li><a href="category.html?cat=stress-sleep">Stress & Sleep</a></li>
+            <li><a href="category.html?cat=self-care">Self-Care</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Resources</h4>
+          <ul class="footer-links">
+            <li><a href="index.html#guide">Beginner Guides</a></li>
+            <li><a href="index.html#browse">Wellness Glossary</a></li>
+            <li><a href="contact.html">FAQs</a></li>
+            <li><a href="contact.html">Newsletter</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Legal</h4>
+          <ul class="footer-links">
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+            <li><a href="#">Medical Disclaimer</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2026 CalmTouch Blog. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Search Modal -->
+  <div class="search-modal-backdrop" id="search-modal-backdrop">
+    <div class="search-modal">
+      <div class="search-modal-header">
+        <input type="text" class="search-input" id="search-input" placeholder="Search massage & wellness articles..." />
+        <button class="search-modal-close" id="search-modal-close">&times;</button>
+      </div>
+      <div class="search-modal-body">
+        <div class="search-results" id="search-results"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">
+    <span id="toast-text">Notification message</span>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Article Detail | CalmTouch - Massage & Wellness Blog</title>
+  <meta name="description" content="Read expert massage guides, self-care routines, and practical wellness advice on CalmTouch." />
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- 1. HEADER & NAVIGATION BAR -->
+  <header class="main-header">
+    <div class="container header-container">
+      <a href="index.html" class="logo-wrapper">
+        <div class="logo-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.4 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
+          </svg>
+        </div>
+        <div class="logo-text-group">
+          <span class="logo-name">CalmTouch</span>
+          <span class="logo-tagline">Massage & Wellness Blog</span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav -->
+      <nav>
+        <ul class="nav-menu">
+          <li><a href="index.html" class="nav-link">Home</a></li>
+          
+          <li class="nav-dropdown">
+            <a href="category.html?cat=massage-therapy" class="nav-link dropdown-toggle">
+              Categories
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="dropdown-arrow">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </a>
+            <ul class="dropdown-menu">
+              <li><a href="category.html?cat=massage-therapy">Massage Therapy</a></li>
+              <li><a href="category.html?cat=pain-relief">Pain Relief</a></li>
+              <li><a href="category.html?cat=stress-sleep">Stress & Sleep</a></li>
+              <li><a href="category.html?cat=self-care">Self-Care</a></li>
+              <li><a href="category.html?cat=aromatherapy">Aromatherapy</a></li>
+              <li><a href="category.html?cat=recovery">Recovery</a></li>
+              <li class="dropdown-divider"></li>
+              <li><a href="category.html?cat=all">All Categories</a></li>
+            </ul>
+          </li>
+
+          <li><a href="category.html?cat=self-care" class="nav-link">Self-Care</a></li>
+          <li><a href="index.html#guide" class="nav-link">Guides</a></li>
+          <li><a href="about.html" class="nav-link">About</a></li>
+          <li><a href="contact.html" class="nav-link">Contact</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <button class="search-trigger" id="search-trigger" aria-label="Search articles">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+
+        <button class="hamburger-btn" id="hamburger-btn" aria-label="Toggle navigation menu">
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Drawer Menu -->
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+  <aside class="mobile-drawer" id="mobile-drawer">
+    <div class="drawer-header">
+      <div class="logo-wrapper">
+        <div class="logo-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.4 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
+          </svg>
+        </div>
+        <span class="logo-name" style="font-size: 1.2rem;">CalmTouch</span>
+      </div>
+      <button class="close-drawer-btn" id="close-drawer-btn">&times;</button>
+    </div>
+    <ul class="mobile-nav-list">
+      <li><a href="index.html" class="mobile-nav-link">Home</a></li>
+      <li class="mobile-nav-header-item">
+        <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-primary); display: block; padding: 12px 16px 4px 16px;">Categories</span>
+      </li>
+      <li><a href="category.html?cat=massage-therapy" class="mobile-nav-link" style="padding-left: 28px;">• Massage Therapy</a></li>
+      <li><a href="category.html?cat=pain-relief" class="mobile-nav-link" style="padding-left: 28px;">• Pain Relief</a></li>
+      <li><a href="category.html?cat=stress-sleep" class="mobile-nav-link" style="padding-left: 28px;">• Stress & Sleep</a></li>
+      <li><a href="category.html?cat=self-care" class="mobile-nav-link" style="padding-left: 28px;">• Self-Care</a></li>
+      <li><a href="category.html?cat=aromatherapy" class="mobile-nav-link" style="padding-left: 28px;">• Aromatherapy</a></li>
+      <li><a href="category.html?cat=recovery" class="mobile-nav-link" style="padding-left: 28px;">• Recovery</a></li>
+      <li><a href="about.html" class="mobile-nav-link">About</a></li>
+      <li><a href="contact.html" class="mobile-nav-link">Contact</a></li>
+    </ul>
+  </aside>
+
+  <!-- 2. BLOG DETAIL PAGE CONTENT (2-COLUMN GRID WITH RIGHT SIDEBAR) -->
+  <main id="blog-detail-view" class="blog-detail-section">
+    <div class="container">
+      <!-- Breadcrumb Navigation -->
+      <div class="blog-breadcrumb">
+        <a href="index.html">Home</a>
+        <span class="sep">/</span>
+        <a href="category.html" id="breadcrumb-category-link"><span id="breadcrumb-category">Self-Massage</span></a>
+        <span class="sep">/</span>
+        <span class="active-crumb" id="breadcrumb-title">5 Easy Neck Massage Techniques</span>
+      </div>
+
+      <!-- 2-Column Grid: Left Article Column + Right Sidebar -->
+      <div class="blog-layout-grid">
+        <!-- Main Left Column -->
+        <article class="blog-main-column" id="blog-detail-content-area">
+          <!-- Dynamically Rendered by JS -->
+        </article>
+
+        <!-- Right Sidebar (Hides on Mobile) -->
+        <aside class="blog-sidebar">
+          <!-- 1. Search Box -->
+          <div class="sidebar-widget">
+            <div class="sidebar-search-box">
+              <input type="text" class="sidebar-search-input" id="sidebar-search-input" placeholder="Search articles..." />
+              <button class="sidebar-search-btn" id="sidebar-search-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. Categories List -->
+          <div class="sidebar-widget">
+            <h3 class="sidebar-widget-title">Categories</h3>
+            <ul class="sidebar-category-list">
+              <li><a href="category.html?cat=massage-therapy" class="cat-link"><span class="cat-name">Massage Therapy</span><span class="cat-count">(4)</span></a></li>
+              <li><a href="category.html?cat=pain-relief" class="cat-link"><span class="cat-name">Pain Relief</span><span class="cat-count">(5)</span></a></li>
+              <li><a href="category.html?cat=stress-sleep" class="cat-link"><span class="cat-name">Stress & Sleep</span><span class="cat-count">(4)</span></a></li>
+              <li><a href="category.html?cat=self-care" class="cat-link"><span class="cat-name">Self-Care</span><span class="cat-count">(4)</span></a></li>
+              <li><a href="category.html?cat=aromatherapy" class="cat-link"><span class="cat-name">Aromatherapy</span><span class="cat-count">(4)</span></a></li>
+              <li><a href="category.html?cat=recovery" class="cat-link"><span class="cat-name">Recovery</span><span class="cat-count">(4)</span></a></li>
+            </ul>
+          </div>
+
+          <!-- 3. Popular Posts Widget -->
+          <div class="sidebar-widget">
+            <h3 class="sidebar-widget-title">Popular Posts</h3>
+            <div class="sidebar-popular-list">
+              <div class="popular-post-item" onclick="location.href='blog-detail.html?slug=5-easy-neck-massage-techniques-for-desk-workers'">
+                <img src="assets/images/article1.png" alt="Popular Post" class="popular-post-img" />
+                <div>
+                  <h4 class="popular-post-title">5 Easy Neck Massage Techniques</h4>
+                  <span class="popular-post-date">May 12, 2026</span>
+                </div>
+              </div>
+              <div class="popular-post-item" onclick="location.href='blog-detail.html?slug=can-massage-help-lower-back-pain'">
+                <img src="assets/images/article2.png" alt="Popular Post" class="popular-post-img" />
+                <div>
+                  <h4 class="popular-post-title">Can Massage Help Lower Back Pain?</h4>
+                  <span class="popular-post-date">May 10, 2026</span>
+                </div>
+              </div>
+              <div class="popular-post-item" onclick="location.href='blog-detail.html?slug=best-evening-massage-routine-for-better-sleep'">
+                <img src="assets/images/article3.png" alt="Popular Post" class="popular-post-img" />
+                <div>
+                  <h4 class="popular-post-title">Evening Routine for Sleep</h4>
+                  <span class="popular-post-date">May 08, 2026</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Sidebar Newsletter Card -->
+          <div class="sidebar-widget sidebar-newsletter-card">
+            <div class="sidebar-news-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+            </div>
+            <h4>Join Our Newsletter</h4>
+            <p>Get practical massage & wellness tips straight to your inbox.</p>
+            <form onsubmit="event.preventDefault(); showToast('Subscribed!');">
+              <input type="email" placeholder="Enter your email address" required class="sidebar-news-input" />
+              <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Subscribe</button>
+            </form>
+          </div>
+
+          <!-- 5. Sidebar Free Guide Widget -->
+          <div class="sidebar-widget sidebar-guide-card">
+            <div class="guide-widget-badge">FREE GUIDE</div>
+            <h4>Massage & Body Recovery Guide</h4>
+            <p>Learn natural self-care techniques for daily body wellness.</p>
+            <img src="assets/images/guide.png" alt="Free Guide" class="sidebar-guide-img" />
+            <button class="btn btn-primary" style="width: 100%; margin-top: 14px;" onclick="location.href='blog-detail.html?slug=the-beginners-guide-to-massage-therapy'">Download Guide</button>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <!-- 3. FOOTER -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col-brand">
+          <div class="footer-logo">
+            <div class="logo-icon" style="background-color: rgba(255,255,255,0.1); color: var(--color-white);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.4 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
+              </svg>
+            </div>
+            <div>
+              <span class="footer-logo-title">CalmTouch</span>
+              <div class="footer-tagline">Massage & Wellness Blog</div>
+            </div>
+          </div>
+          <p class="footer-brand-desc">
+            Simple, trustworthy guidance for massage, recovery, relaxation, and everyday wellness.
+          </p>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Quick Links</h4>
+          <ul class="footer-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="about.html">About Us</a></li>
+            <li><a href="contact.html">Contact Us</a></li>
+            <li><a href="index.html#latest">All Articles</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Categories</h4>
+          <ul class="footer-links">
+            <li><a href="category.html?cat=massage-therapy">Massage Therapy</a></li>
+            <li><a href="category.html?cat=pain-relief">Pain Relief</a></li>
+            <li><a href="category.html?cat=stress-sleep">Stress & Sleep</a></li>
+            <li><a href="category.html?cat=self-care">Self-Care</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Resources</h4>
+          <ul class="footer-links">
+            <li><a href="index.html#guide">Beginner Guides</a></li>
+            <li><a href="index.html#browse">Wellness Glossary</a></li>
+            <li><a href="contact.html">FAQs</a></li>
+            <li><a href="contact.html">Newsletter</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Legal</h4>
+          <ul class="footer-links">
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+            <li><a href="#">Medical Disclaimer</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2026 CalmTouch Blog. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Search Modal -->
+  <div class="search-modal-backdrop" id="search-modal-backdrop">
+    <div class="search-modal">
+      <div class="search-modal-header">
+        <input type="text" class="search-input" id="search-input" placeholder="Search massage & wellness articles..." />
+        <button class="search-modal-close" id="search-modal-close">&times;</button>
+      </div>
+      <div class="search-modal-body">
+        <div class="search-results" id="search-results"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">
+    <span id="toast-text">Notification message</span>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact Us | CalmTouch - Massage & Wellness Blog</title>
+  <meta name="description" content="Get in touch with the CalmTouch editorial team. Send us your inquiries or massage topic requests directly via Gmail." />
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- 1. HEADER & NAVIGATION BAR -->
+  <header class="main-header">
+    <div class="container header-container">
+      <a href="index.html" class="logo-wrapper">
+        <div class="logo-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.4 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
+          </svg>
+        </div>
+        <div class="logo-text-group">
+          <span class="logo-name">CalmTouch</span>
+          <span class="logo-tagline">Massage & Wellness Blog</span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav -->
+      <nav>
+        <ul class="nav-menu">
+          <li><a href="index.html" class="nav-link">Home</a></li>
+          
+          <li class="nav-dropdown">
+            <a href="category.html?cat=massage-therapy" class="nav-link dropdown-toggle">
+              Categories
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="dropdown-arrow">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </a>
+            <ul class="dropdown-menu">
+              <li><a href="category.html?cat=massage-therapy">Massage Therapy</a></li>
+              <li><a href="category.html?cat=pain-relief">Pain Relief</a></li>
+              <li><a href="category.html?cat=stress-sleep">Stress & Sleep</a></li>
+              <li><a href="category.html?cat=self-care">Self-Care</a></li>
+              <li><a href="category.html?cat=aromatherapy">Aromatherapy</a></li>
+              <li><a href="category.html?cat=recovery">Recovery</a></li>
+              <li class="dropdown-divider"></li>
+              <li><a href="category.html?cat=all">All Categories</a></li>
+            </ul>
+          </li>
+
+          <li><a href="category.html?cat=self-care" class="nav-link">Self-Care</a></li>
+          <li><a href="index.html#guide" class="nav-link">Guides</a></li>
+          <li><a href="about.html" class="nav-link">About</a></li>
+          <li><a href="contact.html" class="nav-link active">Contact</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <button class="search-trigger" id="search-trigger" aria-label="Search articles">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+
+        <button class="hamburger-btn" id="hamburger-btn" aria-label="Toggle navigation menu">
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Drawer Menu -->
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+  <aside class="mobile-drawer" id="mobile-drawer">
+    <div class="drawer-header">
+      <div class="logo-wrapper">
+        <div class="logo-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.4 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
+          </svg>
+        </div>
+        <span class="logo-name" style="font-size: 1.2rem;">CalmTouch</span>
+      </div>
+      <button class="close-drawer-btn" id="close-drawer-btn">&times;</button>
+    </div>
+    <ul class="mobile-nav-list">
+      <li><a href="index.html" class="mobile-nav-link">Home</a></li>
+      <li class="mobile-nav-header-item">
+        <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-primary); display: block; padding: 12px 16px 4px 16px;">Categories</span>
+      </li>
+      <li><a href="category.html?cat=massage-therapy" class="mobile-nav-link" style="padding-left: 28px;">• Massage Therapy</a></li>
+      <li><a href="category.html?cat=pain-relief" class="mobile-nav-link" style="padding-left: 28px;">• Pain Relief</a></li>
+      <li><a href="category.html?cat=stress-sleep" class="mobile-nav-link" style="padding-left: 28px;">• Stress & Sleep</a></li>
+      <li><a href="category.html?cat=self-care" class="mobile-nav-link" style="padding-left: 28px;">• Self-Care</a></li>
+      <li><a href="category.html?cat=aromatherapy" class="mobile-nav-link" style="padding-left: 28px;">• Aromatherapy</a></li>
+      <li><a href="category.html?cat=recovery" class="mobile-nav-link" style="padding-left: 28px;">• Recovery</a></li>
+      <li><a href="about.html" class="mobile-nav-link">About</a></li>
+      <li><a href="contact.html" class="mobile-nav-link">Contact</a></li>
+    </ul>
+  </aside>
+
+  <!-- 2. CONTACT US PAGE CONTENT -->
+  <main class="page-section">
+    <div class="container">
+      <!-- Breadcrumb Navigation -->
+      <div class="blog-breadcrumb">
+        <a href="index.html">Home</a>
+        <span class="sep">/</span>
+        <span class="active-crumb">Contact Us</span>
+      </div>
+
+      <!-- Contact Header -->
+      <div class="contact-hero-banner">
+        <span class="badge-label">GET IN TOUCH</span>
+        <h1 class="contact-hero-title">We’d Love to Hear From You</h1>
+        <p class="contact-hero-subtitle">
+          Have a question about our massage guides, a suggestion for a topic, or interested in collaborating? Send us a message below to send directly to our inbox via Gmail.
+        </p>
+      </div>
+
+      <div class="contact-grid">
+        <!-- Left: Contact Form -->
+        <div class="contact-form-container">
+          <h2 class="contact-form-title">Send Us a Message</h2>
+          <p class="contact-form-subtitle">Fill out the form below to send your message straight to Gmail.</p>
+
+          <form id="main-contact-form" class="contact-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="contact-name">Your Full Name *</label>
+                <input type="text" id="contact-name" class="form-control" placeholder="John Doe" required />
+              </div>
+              <div class="form-group">
+                <label for="contact-email">Your Email Address *</label>
+                <input type="email" id="contact-email" class="form-control" placeholder="john@example.com" required />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="contact-subject">Topic / Subject *</label>
+              <select id="contact-subject" class="form-control" required>
+                <option value="" disabled selected>Select a topic...</option>
+                <option value="General Question">General Question</option>
+                <option value="Article Feedback">Article Feedback</option>
+                <option value="Guest Post & Collaboration">Guest Post & Collaboration</option>
+                <option value="Massage Guidance Request">Massage Guidance Request</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="contact-message">Your Message *</label>
+              <textarea id="contact-message" class="form-control" rows="6" placeholder="Write your message or inquiry here..." required></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-submit-contact">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+              Send Message via Gmail
+            </button>
+          </form>
+        </div>
+
+        <!-- Right: Contact Information Cards -->
+        <div class="contact-info-container">
+          <div class="contact-info-card">
+            <div class="contact-info-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+            </div>
+            <div>
+              <h4>Email Us Directly</h4>
+              <p>support@calmtouch.com</p>
+              <span class="info-note">We respond within 24 business hours.</span>
+            </div>
+          </div>
+
+          <div class="contact-info-card">
+            <div class="contact-info-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+            </div>
+            <div>
+              <h4>CalmTouch Studio & Office</h4>
+              <p>104 Wellness Boulevard, Suite 300<br>San Francisco, CA 94107</p>
+            </div>
+          </div>
+
+          <div class="contact-info-card">
+            <div class="contact-info-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <div>
+              <h4>Editorial Working Hours</h4>
+              <p>Monday – Friday: 9:00 AM – 6:00 PM PST<br>Saturday & Sunday: Closed</p>
+            </div>
+          </div>
+
+          <!-- Quick FAQ Accordion Box -->
+          <div class="contact-faq-box">
+            <h4>Quick Help & FAQs</h4>
+            <details class="faq-item">
+              <summary>Can I request a custom massage topic?</summary>
+              <p>Yes! Simply select "Article Feedback" or "General Question" above and let us know what technique or body area you'd like us to cover next.</p>
+            </details>
+            <details class="faq-item" style="margin-top: 8px;">
+              <summary>Do you offer 1-on-1 virtual consultations?</summary>
+              <p>Our editorial team provides educational advice. For specific medical conditions, please consult your physician or a licensed physical therapist.</p>
+            </details>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 3. FOOTER -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col-brand">
+          <div class="footer-logo">
+            <div class="logo-icon" style="background-color: rgba(255,255,255,0.1); color: var(--color-white);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.4 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
+              </svg>
+            </div>
+            <div>
+              <span class="footer-logo-title">CalmTouch</span>
+              <div class="footer-tagline">Massage & Wellness Blog</div>
+            </div>
+          </div>
+          <p class="footer-brand-desc">
+            Simple, trustworthy guidance for massage, recovery, relaxation, and everyday wellness.
+          </p>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Quick Links</h4>
+          <ul class="footer-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="about.html">About Us</a></li>
+            <li><a href="contact.html">Contact Us</a></li>
+            <li><a href="index.html#latest">All Articles</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Categories</h4>
+          <ul class="footer-links">
+            <li><a href="category.html?cat=massage-therapy">Massage Therapy</a></li>
+            <li><a href="category.html?cat=pain-relief">Pain Relief</a></li>
+            <li><a href="category.html?cat=stress-sleep">Stress & Sleep</a></li>
+            <li><a href="category.html?cat=self-care">Self-Care</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Resources</h4>
+          <ul class="footer-links">
+            <li><a href="index.html#guide">Beginner Guides</a></li>
+            <li><a href="index.html#browse">Wellness Glossary</a></li>
+            <li><a href="contact.html">FAQs</a></li>
+            <li><a href="contact.html">Newsletter</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Legal</h4>
+          <ul class="footer-links">
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+            <li><a href="#">Medical Disclaimer</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2026 CalmTouch Blog. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Search Modal -->
+  <div class="search-modal-backdrop" id="search-modal-backdrop">
+    <div class="search-modal">
+      <div class="search-modal-header">
+        <input type="text" class="search-input" id="search-input" placeholder="Search massage & wellness articles..." />
+        <button class="search-modal-close" id="search-modal-close">&times;</button>
+      </div>
+      <div class="search-modal-body">
+        <div class="search-results" id="search-results"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">
+    <span id="toast-text">Notification message</span>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="app.js"></script>
+</body>
+</html>

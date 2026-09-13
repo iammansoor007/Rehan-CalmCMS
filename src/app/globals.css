@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #4E6E58;
+  --color-primary-dark: #3B5443;
+  --color-primary-light: #E7EFEA;
+  --color-bg-light: #F1F0EA;
+  --color-bg-soft: #F8F7F3;
+  --color-accent-beige: #CDAF95;
+  --color-accent-beige-light: #F6F1EC;
+  --color-dark-text: #26322D;
+  --color-muted: #66766D;
+  --color-border: #E1DFD5;
+  --color-border-light: #ECEAE1;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-inter), sans-serif;
+  color: var(--color-dark-text);
+  background-color: #ffffff;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-poppins), sans-serif;
+}
+
+/* Custom fade animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease-out forwards;
+}
