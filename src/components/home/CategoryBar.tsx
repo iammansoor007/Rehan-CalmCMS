@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { Category, HomepageContent } from "@/types/cms";
 import { Sparkles, ArrowUpRight } from "lucide-react";
+import { pickCategories } from "@/lib/categoryTree";
 
 interface CategoryBarProps {
   categoriesSection: HomepageContent["categoriesSection"];
@@ -9,7 +10,7 @@ interface CategoryBarProps {
 }
 
 export function CategoryBar({ categoriesSection, categories }: CategoryBarProps) {
-  const displayCategories = categories.filter((c) => c.slug !== "all");
+  const displayCategories = pickCategories(categories, categoriesSection.categorySlugs);
 
   return (
     <section className="py-16 bg-white border-b border-brand-borderLight">
@@ -48,9 +49,11 @@ export function CategoryBar({ categoriesSection, categories }: CategoryBarProps)
                 <h3 className="font-heading font-semibold text-lg text-brand-dark group-hover:text-primary transition-colors mb-2">
                   {cat.name}
                 </h3>
-                <p className="text-xs text-brand-muted line-clamp-2 leading-relaxed">
-                  {cat.description}
-                </p>
+                {categoriesSection.showDescriptions && cat.description && (
+                  <p className="text-xs text-brand-muted line-clamp-2 leading-relaxed">
+                    {cat.description}
+                  </p>
+                )}
               </div>
 
               <div className="mt-4 pt-3 border-t border-brand-borderLight/80 text-xs font-semibold text-primary">

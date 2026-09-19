@@ -36,3 +36,6 @@ next-env.d.ts
 
 # backups
 _legacy_backup/
+
+# local file-store used when MONGODB_URI is not set
+/.data/

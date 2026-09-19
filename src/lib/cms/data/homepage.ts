@@ -1,7 +1,13 @@
 import { HomepageContent } from "@/types/cms";
 
 export const homepageContent: HomepageContent = {
+  seo: {
+    title: "",
+    description: "",
+  },
+  sectionOrder: ["hero", "categories", "latest", "browse", "guidebook", "trust", "newsletter"],
   hero: {
+    visible: true,
     badge: "Mindful Living & Body Wellness",
     titleStart: "Simple Guidance for a",
     titleHighlight: "Calmer, Healthier",
@@ -15,22 +21,42 @@ export const homepageContent: HomepageContent = {
       { value: "100%", label: "Evidence-Aligned" },
       { value: "25k+", label: "Monthly Readers" },
     ],
+    image: "/assets/images/hero.png",
+    imageAlt: "Massage & Wellness Experience",
+    ctaText: "Explore All Guides",
+    ctaHref: "/category/all",
+    cardLabel: "Featured Modality",
+    cardTitle: "Classic Swedish Full Body Flow",
+    cardHref: "/blog/swedish-massage-what-to-expect",
   },
   categoriesSection: {
+    visible: true,
     badge: "Explore by Topic",
     title: "Browse Wellness Categories",
     subtitle: "Find the exact advice, techniques, and guidance you need for your body.",
+    categorySlugs: [],
+    showDescriptions: true,
   },
   latestSection: {
+    visible: true,
     title: "Latest Articles & Guides",
     subtitle: "Fresh insights and practical routines published weekly by our team.",
+    count: 6,
+    categorySlugs: [],
+    showSidebar: true,
+    linkText: "View all articles →",
+    linkHref: "/category/all",
   },
   browseSection: {
+    visible: true,
     badge: "Curated Directory",
     title: "Browse by Category",
     subtitle: "Select a focus area below to discover targeted routines and treatments.",
+    categorySlugs: [],
+    postsPerCategory: 4,
   },
   guidebook: {
+    visible: true,
     badge: "Featured Masterclass",
     title: "The Beginner’s Complete Guide to Massage Therapy",
     subtitle:
@@ -45,6 +71,7 @@ export const homepageContent: HomepageContent = {
     img: "/assets/images/guide.png",
   },
   trustSection: {
+    visible: true,
     items: [
       {
         title: "Evidence-Aligned Advice",
@@ -69,6 +96,7 @@ export const homepageContent: HomepageContent = {
     ],
   },
   newsletter: {
+    visible: true,
     badge: "Stay Grounded",
     title: "Subscribe to Our Weekly Wellness Digest",
     subtitle:

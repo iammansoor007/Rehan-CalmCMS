@@ -6,9 +6,13 @@ import { Send } from "lucide-react";
 
 interface ContactFormProps {
   subjects: string[];
+  buttonText: string;
+  recipientEmail: string;
+  /** Toast shown after sending. "{name}" is replaced with the sender's name. */
+  successMessage: string;
 }
 
-export function ContactForm({ subjects }: ContactFormProps) {
+export function ContactForm({ subjects, buttonText, recipientEmail, successMessage }: ContactFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState(subjects[0] || "General Inquiry");
@@ -32,12 +36,12 @@ export function ContactForm({ subjects }: ContactFormProps) {
       console.warn("Could not record inquiry in database:", err);
     }
 
-    const mailtoUrl = `mailto:support@calmtouch.com?subject=${encodeURIComponent(
+    const mailtoUrl = `mailto:${recipientEmail}?subject=${encodeURIComponent(
       `[${subject}] Inquiry from ${name}`
     )}&body=${encodeURIComponent(`Sender Name: ${name}\nSender Email: ${email}\n\nMessage:\n${message}`)}`;
 
     window.location.href = mailtoUrl;
-    showToast(`Thank you ${name}! Message recorded and opening mail client.`);
+    showToast(successMessage.replace("{name}", name));
     setName("");
     setEmail("");
     setMessage("");
@@ -109,7 +113,7 @@ export function ContactForm({ subjects }: ContactFormProps) {
         type="submit"
         className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-primary text-white text-sm font-semibold hover:bg-primary-dark shadow-sm transition-all duration-200 inline-flex items-center justify-center gap-2"
       >
-        <span>Send Message</span>
+        <span>{buttonText}</span>
         <Send className="w-4 h-4" />
       </button>
     </form>

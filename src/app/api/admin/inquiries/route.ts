@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { authorize } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { InquiryModel } from "@/models/Inquiry";
 
 export async function GET() {
+  const auth = await authorize("view_leads");
+  if (auth.error) return auth.error;
+
   try {
     const db = await connectToDatabase();
     if (db) {
@@ -16,6 +20,9 @@ export async function GET() {
 }
 
 export async function DELETE(req: Request) {
+  const auth = await authorize("view_leads");
+  if (auth.error) return auth.error;
+
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");

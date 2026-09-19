@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getCategories, getArticles } from "@/lib/cms/client";
+import { getCategories, getArticles, getSidebarSettings, getTemplateSettings } from "@/lib/cms/client";
+import { buildMetadata, getSeoContext } from "@/lib/seo";
 import { ArticleCard } from "@/components/ui/ArticleCard";
 import { Sidebar } from "@/components/ui/Sidebar";
 import { Folder, ChevronRight } from "lucide-react";
@@ -8,17 +9,24 @@ import { slugify } from "@/lib/slugify";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "All Categories & Wellness Guides",
-  description:
-    "Explore our complete directory of evidence-informed massage techniques, pain relief protocols, and evening sleep rituals.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const [templates, ctx] = await Promise.all([getTemplateSettings(), getSeoContext()]);
+  return buildMetadata(ctx, {
+    kind: "other",
+    path: "/category",
+    title: "All Categories & Wellness Guides",
+    description: templates.directory.subtitle,
+  });
+}
 
 export default async function CategoriesIndexPage() {
-  const [categories, allArticles] = await Promise.all([
+  const [categories, allArticles, sidebar, templates] = await Promise.all([
     getCategories(),
     getArticles(),
+    getSidebarSettings(),
+    getTemplateSettings(),
   ]);
+  const directory = templates.directory;
 
   const realCategories = categories.filter((c) => c.slug !== "all");
 
@@ -38,14 +46,16 @@ export default async function CategoriesIndexPage() {
         <header className="mb-12 p-8 sm:p-12 rounded-3xl bg-white border border-brand-borderLight shadow-sm">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-4">
             <Folder className="w-3.5 h-3.5" />
-            <span>Wellness Topics & Directory</span>
+            <span>{directory.badge}</span>
           </div>
           <h1 className="font-heading font-bold text-3xl sm:text-4xl lg:text-5xl text-brand-dark tracking-tight mb-4">
-            All Wellness Categories
+            {directory.title}
           </h1>
-          <p className="text-base text-brand-muted max-w-2xl leading-relaxed mb-6">
-            Find targeted advice, practical self-massage steps, and certified bodywork knowledge organized by topic.
-          </p>
+          {directory.subtitle && (
+            <p className="text-base text-brand-muted max-w-2xl leading-relaxed mb-6">
+              {directory.subtitle}
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
             {realCategories.map((cat) => (
               <Link
@@ -126,7 +136,7 @@ export default async function CategoriesIndexPage() {
           </div>
 
           <div className="lg:col-span-4">
-            <Sidebar recentArticles={allArticles} categories={categories} />
+            <Sidebar recentArticles={allArticles} categories={categories} settings={sidebar} />
           </div>
         </div>
       </div>

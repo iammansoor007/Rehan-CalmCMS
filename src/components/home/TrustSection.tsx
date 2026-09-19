@@ -1,17 +1,10 @@
 import React from "react";
 import { HomepageContent } from "@/types/cms";
-import { ShieldCheck, Award, Sparkles, HeartHandshake } from "lucide-react";
+import { DynamicIcon } from "@/lib/icons";
 
 interface TrustSectionProps {
   trustSection: HomepageContent["trustSection"];
 }
-
-const iconMap: Record<string, React.ReactNode> = {
-  ShieldCheck: <ShieldCheck className="w-6 h-6 text-primary" />,
-  Award: <Award className="w-6 h-6 text-primary" />,
-  Sparkles: <Sparkles className="w-6 h-6 text-primary" />,
-  HeartHandshake: <HeartHandshake className="w-6 h-6 text-primary" />,
-};
 
 export function TrustSection({ trustSection }: TrustSectionProps) {
   return (
@@ -20,11 +13,11 @@ export function TrustSection({ trustSection }: TrustSectionProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {trustSection.items.map((item) => (
             <div
-              key={item.title}
+              key={`${item.title}-${item.iconName}`}
               className="p-6 rounded-2xl bg-brand-bgSoft/60 border border-brand-borderLight flex flex-col items-start"
             >
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                {iconMap[item.iconName] || <ShieldCheck className="w-6 h-6 text-primary" />}
+                <DynamicIcon name={item.iconName} fallback="ShieldCheck" className="w-6 h-6 text-primary" />
               </div>
               <h3 className="font-heading font-semibold text-base text-brand-dark mb-2">
                 {item.title}

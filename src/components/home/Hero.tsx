@@ -32,6 +32,18 @@ export function Hero({ hero }: HeroProps) {
               {hero.subtitle}
             </p>
 
+            {hero.ctaText && hero.ctaHref && (
+              <div>
+                <Link
+                  href={hero.ctaHref}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-white text-sm font-semibold shadow-sm hover:bg-primary-dark transition-colors"
+                >
+                  <span>{hero.ctaText}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            )}
+
             {/* Popular quick tags */}
             <div className="pt-2 flex flex-wrap items-center gap-2">
               <span className="text-xs font-semibold text-brand-dark">Popular Topics:</span>
@@ -65,30 +77,37 @@ export function Hero({ hero }: HeroProps) {
           <div className="lg:col-span-5 relative">
             <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-floating border-4 border-white bg-white">
               <Image
-                src="/assets/images/hero.png"
-                alt="Massage & Wellness Experience"
+                src={hero.image || "/assets/images/hero.png"}
+                alt={hero.imageAlt || "Massage & Wellness Experience"}
                 fill
                 priority
                 sizes="(max-width: 1024px) 100vw, 40vw"
                 className="object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-              <div className="absolute bottom-6 left-6 right-6 p-4 rounded-2xl bg-white/90 backdrop-blur-md border border-white/40 shadow-sm flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-primary block">
-                    Featured Modality
-                  </span>
-                  <span className="text-sm font-semibold text-brand-dark">
-                    Classic Swedish Full Body Flow
-                  </span>
+              {hero.cardTitle && (
+                <div className="absolute bottom-6 left-6 right-6 p-4 rounded-2xl bg-white/90 backdrop-blur-md border border-white/40 shadow-sm flex items-center justify-between">
+                  <div>
+                    {hero.cardLabel && (
+                      <span className="text-xs font-bold uppercase tracking-wider text-primary block">
+                        {hero.cardLabel}
+                      </span>
+                    )}
+                    <span className="text-sm font-semibold text-brand-dark">
+                      {hero.cardTitle}
+                    </span>
+                  </div>
+                  {hero.cardHref && (
+                    <Link
+                      href={hero.cardHref}
+                      aria-label={hero.cardTitle}
+                      className="p-2 rounded-full bg-primary text-white hover:bg-primary-dark transition-colors"
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  )}
                 </div>
-                <Link
-                  href="/blog/swedish-massage-what-to-expect"
-                  className="p-2 rounded-full bg-primary text-white hover:bg-primary-dark transition-colors"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
+              )}
             </div>
           </div>
         </div>

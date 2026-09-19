@@ -38,26 +38,32 @@ export function GuidebookSection({ guidebook }: GuidebookSectionProps) {
               ))}
             </ul>
 
-            <div className="pt-4">
-              <Link
-                href={guidebook.ctaHref}
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-primary text-white text-sm font-semibold hover:bg-primary-dark shadow-sm hover:shadow transition-all duration-200"
-              >
-                <span>{guidebook.ctaText}</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
+            {guidebook.ctaText && guidebook.ctaHref && (
+              <div className="pt-4">
+                <Link
+                  href={guidebook.ctaHref}
+                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-primary text-white text-sm font-semibold hover:bg-primary-dark shadow-sm hover:shadow transition-all duration-200"
+                >
+                  <span>{guidebook.ctaText}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Right Column Image */}
           <div className="lg:col-span-5 relative h-72 lg:h-full min-h-[340px] bg-brand-bgLight">
-            <Image
-              src={guidebook.img}
-              alt={guidebook.title}
-              fill
-              sizes="(max-width: 1024px) 100vw, 40vw"
-              className="object-cover"
-            />
+            {guidebook.img ? (
+              <Image
+                src={guidebook.img}
+                alt={guidebook.title}
+                fill
+                sizes="(max-width: 1024px) 100vw, 40vw"
+                className="object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-brand-bgLight to-brand-accentBeigeLight" />
+            )}
           </div>
         </div>
       </div>

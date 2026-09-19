@@ -3,12 +3,16 @@ import {
   getSiteConfig,
   updateSiteConfig,
   getHomepageData,
-  updateHomepageData,
   getFooterData,
   getNavigation,
 } from "@/lib/cms/client";
+import { authorize } from "@/lib/auth";
+import { errorResponse } from "@/lib/cms/errors";
 
 export async function GET() {
+  const auth = await authorize();
+  if (auth.error) return auth.error;
+
   const [siteConfig, homepage, footer, navigation] = await Promise.all([
     getSiteConfig(),
     getHomepageData(),
@@ -25,18 +29,18 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = await authorize("manage_settings");
+  if (auth.error) return auth.error;
+
   try {
     const body = await req.json();
 
     if (body.siteConfig) {
       await updateSiteConfig(body.siteConfig);
     }
-    if (body.homepage) {
-      await updateHomepageData(body.homepage);
-    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: "Failed to update site configuration" }, { status: 500 });
+    return errorResponse(error, "Failed to update site configuration");
   }
 }

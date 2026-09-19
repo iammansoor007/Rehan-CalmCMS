@@ -66,43 +66,57 @@ export function MobileDrawer({ isOpen, onClose, siteConfig, navigation }: Mobile
                   onClick={onClose}
                   className="block px-3 py-2 rounded-xl text-sm font-medium text-brand-dark hover:bg-brand-bgLight hover:text-primary transition-colors"
                 >
-                  Home
+                  {navigation.homeLabel}
                 </Link>
               </li>
-              {navigation.mainNav
-                .filter((item) => item.label !== "Home")
-                .map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={onClose}
-                      className="block px-3 py-2 rounded-xl text-sm font-medium text-brand-dark hover:bg-brand-bgLight hover:text-primary transition-colors"
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
+              {navigation.links.map((item) => (
+                <li key={`${item.href}-${item.label}`}>
+                  <Link
+                    href={item.href}
+                    onClick={onClose}
+                    target={item.newTab ? "_blank" : undefined}
+                    className="block px-3 py-2 rounded-xl text-sm font-medium text-brand-dark hover:bg-brand-bgLight hover:text-primary transition-colors"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+              {navigation.cta.visible && navigation.cta.text && navigation.cta.href && (
+                <li className="pt-2">
+                  <Link
+                    href={navigation.cta.href}
+                    onClick={onClose}
+                    className="block text-center px-3 py-2.5 rounded-full bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition-colors"
+                  >
+                    {navigation.cta.text}
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
 
+          {navigation.categoriesMenu.visible && (
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-brand-muted block mb-2">
-              Categories
+              {navigation.categoriesMenu.label}
             </span>
             <ul className="space-y-1">
-              {navigation.categoryDropdown.map((cat) => (
+              {navigation.categoriesMenu.items.map((cat) => (
                 <li key={cat.slug}>
                   <Link
                     href={cat.href}
                     onClick={onClose}
                     className="block px-3 py-2 rounded-xl text-sm font-medium text-brand-dark/80 hover:bg-brand-bgLight hover:text-primary transition-colors"
+                    style={cat.depth ? { paddingLeft: 12 + cat.depth * 16 } : undefined}
                   >
-                    • {cat.label}
+                    {cat.depth ? "– " : "• "}
+                    {cat.label}
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
+          )}
         </div>
 
         {/* Footer info in drawer */}

@@ -2,87 +2,142 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { Article, SiteConfig, Category, HomepageContent, Subscriber, Inquiry } from "@/types/cms";
+import {
+  Article,
+  SiteConfig,
+  Category,
+  CmsPage,
+  CmsUser,
+  HomepageContent,
+  MediaItem,
+  Subscriber,
+  Inquiry,
+} from "@/types/cms";
 import { useToast } from "@/components/layout/Toast";
 import {
   LayoutDashboard,
   FileText,
-  FolderTree,
   Image as ImageIcon,
+  File as FileIcon,
   Palette,
-  Settings,
+  Home,
+  Info,
+  Mail,
+  Menu as MenuIcon,
+  PanelBottom,
+  PanelRight,
+  LayoutTemplate,
+  SearchCheck,
+  CornerUpRight,
   Plus,
   Trash2,
-  Edit,
   Save,
   ExternalLink,
   LogOut,
   Upload,
   Lock,
-  Search,
-  CheckCircle,
-  Copy,
   RefreshCw,
   Sparkles,
   Users,
+  UserCog,
   MessageSquare,
-  Globe,
-  Eye,
+  ChevronDown,
 } from "lucide-react";
-import { slugify } from "@/lib/slugify";
+import { Capability, Role, can, roleLabel } from "@/lib/permissions";
+import { api } from "@/components/admin/shared";
+import { PostsList } from "@/components/admin/PostsList";
+import { PostEditor } from "@/components/admin/PostEditor";
+import { CategoriesSection } from "@/components/admin/CategoriesSection";
+import { MediaSection } from "@/components/admin/MediaSection";
+import { PagesList, PageEditor } from "@/components/admin/PagesSection";
+import { UsersSection } from "@/components/admin/UsersSection";
+import { HomepageEditor } from "@/components/admin/HomepageEditor";
+import { AboutEditor } from "@/components/admin/AboutEditor";
+import { ContactEditor } from "@/components/admin/ContactEditor";
+import { NavigationEditor, FooterEditor, SidebarEditor, TemplatesEditor } from "@/components/admin/MenuEditors";
+import { AdminEnvContext, LinkSuggestion } from "@/components/admin/AdminEnv";
+import { SeoSettingsEditor, RedirectsEditor } from "@/components/admin/SeoSettingsEditor";
+import { ProfileSection } from "@/components/admin/ProfileSection";
 
-interface MediaItem {
-  filename: string;
-  url: string;
-  size?: number;
+type Section =
+  | "dashboard"
+  | "posts"
+  | "post-editor"
+  | "categories"
+  | "media"
+  | "pages"
+  | "page-editor"
+  | "users"
+  | "profile"
+  | "subscribers"
+  | "inquiries"
+  | "homepage"
+  | "about"
+  | "contact"
+  | "navigation"
+  | "footer"
+  | "sidebar"
+  | "templates"
+  | "seo"
+  | "redirects"
+  | "branding";
+
+interface Me {
+  username: string;
+  displayName: string;
+  email: string;
+  role: Role;
+  capabilities: Capability[];
 }
+
+type CategoryRow = Category & { count?: number };
 
 export default function AdminPage() {
   // Auth state
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loginUsername, setLoginUsername] = useState("rehanblogsite");
-  const [loginPassword, setLoginPassword] = useState("rehanblogsite@2026adsense");
+  const [me, setMe] = useState<Me | null>(null);
+  const [loginUsername, setLoginUsername] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
   const [authLoading, setAuthLoading] = useState(true);
+  const [loginBusy, setLoginBusy] = useState(false);
 
   // Nav state
-  const [currentSection, setCurrentSection] = useState<
-    "dashboard" | "posts" | "new-post" | "categories" | "media" | "subscribers" | "inquiries" | "branding" | "settings"
-  >("dashboard");
+  const [currentSection, setCurrentSection] = useState<Section>("dashboard");
 
   // Data state
   const [articles, setArticles] = useState<Article[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [mediaList, setMediaList] = useState<MediaItem[]>([]);
+  const [pages, setPages] = useState<CmsPage[]>([]);
+  const [users, setUsers] = useState<CmsUser[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
   const [homepage, setHomepage] = useState<HomepageContent | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  // Post Editor state
-  const [editingArticle, setEditingArticle] = useState<Article | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  // Editors
+  const [editorArticle, setEditorArticle] = useState<Article | null>(null);
+  const [editorPage, setEditorPage] = useState<CmsPage | null>(null);
+  const [editorKey, setEditorKey] = useState(0);
+  const [mediaUploadRequest, setMediaUploadRequest] = useState(0);
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
-
-  // Category form state
-  const [newCatName, setNewCatName] = useState("");
-  const [newCatSlug, setNewCatSlug] = useState("");
-  const [newCatDesc, setNewCatDesc] = useState("");
-
-  // Search & Filter in posts
-  const [postSearch, setPostSearch] = useState("");
-  const [postStatusFilter, setPostStatusFilter] = useState<"all" | "published" | "draft">("all");
 
   const { showToast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
-  const mediaLibraryInputRef = useRef<HTMLInputElement>(null);
 
-  // 1. Check Auth on Mount
+  const allow = (cap: Capability) => !!me && can(me.role, cap);
+
+  // 1. Check auth on mount, and log out if any request reports an expired session
   useEffect(() => {
     checkAuth();
+    const onUnauthorized = () => {
+      setMe((current) => {
+        if (current) showToast("Your session has expired. Please log in again.");
+        return null;
+      });
+    };
+    window.addEventListener("cms:unauthorized", onUnauthorized);
+    return () => window.removeEventListener("cms:unauthorized", onUnauthorized);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkAuth = async () => {
@@ -90,11 +145,11 @@ export default function AdminPage() {
       const res = await fetch("/api/admin/auth");
       const data = await res.json();
       if (data.authenticated) {
-        setIsAuthenticated(true);
-        loadAllData();
+        setMe(data.user);
+        loadAllData(data.user.role);
       }
     } catch {
-      setIsAuthenticated(false);
+      setMe(null);
     } finally {
       setAuthLoading(false);
     }
@@ -102,6 +157,7 @@ export default function AdminPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginBusy(true);
     try {
       const res = await fetch("/api/admin/auth", {
         method: "POST",
@@ -109,304 +165,147 @@ export default function AdminPage() {
         body: JSON.stringify({ username: loginUsername, password: loginPassword }),
       });
       const data = await res.json();
-      if (res.ok && data.success) {
-        setIsAuthenticated(true);
-        showToast("Logged in successfully as Administrator");
-        loadAllData();
+      if (res.ok && data.success && data.user) {
+        setMe(data.user);
+        setLoginPassword("");
+        setCurrentSection("dashboard");
+        showToast(`Welcome back, ${data.user.displayName}!`);
+        loadAllData(data.user.role);
       } else {
-        showToast("Invalid credentials. Please verify your login details.");
+        showToast(data.error || "Invalid credentials. Please verify your login details.");
       }
     } catch {
       showToast("Authentication server error");
+    } finally {
+      setLoginBusy(false);
     }
   };
 
   const handleLogout = async () => {
     await fetch("/api/admin/auth", { method: "DELETE" });
-    setIsAuthenticated(false);
+    setMe(null);
     showToast("Logged out from Admin");
   };
 
-  // 2. Load All CMS Data
-  const loadAllData = async () => {
-    setLoading(true);
-    try {
-      const [artRes, catRes, siteRes, mediaRes, subRes, inqRes] = await Promise.all([
-        fetch("/api/admin/articles"),
-        fetch("/api/admin/categories"),
-        fetch("/api/admin/site"),
-        fetch("/api/admin/media"),
-        fetch("/api/admin/subscribers"),
-        fetch("/api/admin/inquiries"),
-      ]);
+  // 2. Load CMS data (only what the signed-in role may see)
+  const loadAllData = async (role: Role | undefined = me?.role) => {
+    if (!role) return;
+    const skip = Promise.resolve(null);
+    const [arts, cats, site, media, pgs, usrs, subs, inqs] = await Promise.all([
+      api<Article[]>("/api/admin/articles"),
+      api<CategoryRow[]>("/api/admin/categories"),
+      api<{ siteConfig: SiteConfig; homepage: HomepageContent }>("/api/admin/site"),
+      api<MediaItem[]>("/api/admin/media"),
+      can(role, "manage_pages") ? api<CmsPage[]>("/api/admin/pages") : skip,
+      can(role, "manage_users") ? api<CmsUser[]>("/api/admin/users") : skip,
+      can(role, "view_leads") ? api<Subscriber[]>("/api/admin/subscribers") : skip,
+      can(role, "view_leads") ? api<Inquiry[]>("/api/admin/inquiries") : skip,
+    ]);
 
-      const [arts, cats, siteData, media, subs, inqs] = await Promise.all([
-        artRes.json(),
-        catRes.json(),
-        siteRes.json(),
-        mediaRes.json(),
-        subRes.json(),
-        inqRes.json(),
-      ]);
-
-      setArticles(Array.isArray(arts) ? arts : []);
-      setCategories(Array.isArray(cats) ? cats : []);
-      setSiteConfig(siteData.siteConfig || null);
-      setHomepage(siteData.homepage || null);
-      setMediaList(Array.isArray(media) ? media : []);
-      setSubscribers(Array.isArray(subs) ? subs : []);
-      setInquiries(Array.isArray(inqs) ? inqs : []);
-    } catch (err) {
-      console.error("Error loading data:", err);
-      showToast("Error loading CMS data");
-    } finally {
-      setLoading(false);
+    if (arts.data) setArticles(arts.data);
+    if (cats.data) setCategories(cats.data);
+    if (site.data) {
+      setSiteConfig(site.data.siteConfig || null);
+      setHomepage(site.data.homepage || null);
     }
+    if (media.data) setMediaList(media.data);
+    if (pgs?.data) setPages(pgs.data);
+    if (usrs?.data) setUsers(usrs.data);
+    if (subs?.data) setSubscribers(subs.data);
+    if (inqs?.data) setInquiries(inqs.data);
+
+    if (!arts.ok && !cats.ok && arts.status !== 401) showToast("Error loading CMS data");
   };
 
-  // 3. Post Actions
-  const initNewPost = () => {
-    const defaultCat = categories[0]?.name || "Massage Therapy";
-    setEditingArticle({
-      slug: "",
-      title: "",
-      category: defaultCat,
-      date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-      author: "CalmTouch Editorial Team",
-      img: "/assets/images/article1.png",
-      intro: "",
-      quickSummary: "",
-      keyBenefits: [
-        "Releases muscular tightness and improves circulation",
-        "Calms the parasympathetic nervous system",
-      ],
-      sections: [
-        { heading: "Overview & Technique", text: "" },
-        { heading: "Step-by-Step Instructions", text: "" },
-      ],
-      relatedSlugs: [],
-      status: "published",
-      metaTitle: "",
-      metaDescription: "",
-      keywords: [],
-    });
-    setCurrentSection("new-post");
+  const reloadMedia = async () => {
+    const res = await api<MediaItem[]>("/api/admin/media");
+    if (res.data) setMediaList(res.data);
   };
 
-  const handleSavePost = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingArticle) return;
-
-    if (!editingArticle.title.trim() || !editingArticle.slug.trim()) {
-      showToast("Title and URL Slug are required.");
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/admin/articles", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingArticle),
-      });
-
-      if (res.ok) {
-        showToast("Post published successfully!");
-        setEditingArticle(null);
-        setCurrentSection("posts");
-        loadAllData();
-      } else {
-        showToast("Failed to save post");
-      }
-    } catch {
-      showToast("Network error saving post");
-    }
+  // 3. Navigation helpers
+  const openPostEditor = (article: Article | null) => {
+    setEditorArticle(article);
+    setEditorKey((k) => k + 1);
+    setCurrentSection("post-editor");
   };
 
-  const handleDeletePost = async (slug: string) => {
-    if (!confirm(`Are you sure you want to permanently delete post "${slug}"?`)) return;
-
-    try {
-      const res = await fetch(`/api/admin/articles?slug=${slug}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        showToast("Post removed from CMS");
-        loadAllData();
-      } else {
-        showToast("Failed to delete post");
-      }
-    } catch {
-      showToast("Network error deleting post");
-    }
+  const openPageEditor = (page: CmsPage | null) => {
+    setEditorPage(page);
+    setEditorKey((k) => k + 1);
+    setCurrentSection("page-editor");
   };
 
-  // 4. Category Actions
-  const handleCreateCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCatName.trim()) {
-      showToast("Category name is required.");
-      return;
-    }
-
-    const slug = newCatSlug.trim() || slugify(newCatName);
-
-    try {
-      const res = await fetch("/api/admin/categories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newCatName.trim(),
-          slug,
-          description: newCatDesc.trim() || `Articles and guides on ${newCatName.trim()}`,
-        }),
-      });
-
-      if (res.ok) {
-        showToast(`Category "${newCatName}" created!`);
-        setNewCatName("");
-        setNewCatSlug("");
-        setNewCatDesc("");
-        loadAllData();
-      } else {
-        showToast("Failed to create category");
-      }
-    } catch {
-      showToast("Network error creating category");
-    }
+  const goToMediaUpload = () => {
+    setCurrentSection("media");
+    setMediaUploadRequest((n) => n + 1);
   };
 
-  const handleDeleteCategory = async (slug: string) => {
-    if (slug === "all") {
-      showToast("Default archive category cannot be deleted.");
-      return;
-    }
-    if (!confirm(`Delete category "${slug}"?`)) return;
+  // 4. Where each image is used (shown before deleting media)
+  const mediaUsage = (url: string): string[] => [
+    ...articles
+      .filter((a) => a.img === url || a.seo?.ogImage === url || a.seo?.twitterImage === url || a.ogImage === url || (a.content || "").includes(url))
+      .map((a) => `Post “${a.title}”`),
+    ...pages
+      .filter((p) => p.img === url || p.content.includes(url))
+      .map((p) => `Page “${p.title}”`),
+    ...(homepage?.hero.image === url ? ["Homepage hero"] : []),
+    ...(siteConfig?.logoUrl === url ? ["Site logo"] : []),
+  ];
 
-    try {
-      const res = await fetch(`/api/admin/categories?slug=${slug}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        showToast("Category deleted");
-        loadAllData();
-      } else {
-        showToast("Failed to delete category");
-      }
-    } catch {
-      showToast("Network error deleting category");
-    }
-  };
-
-  // 5. Image Upload Handlers
-  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>, target: "post" | "logo" | "media") => {
+  // 5. Logo upload
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>, target: "logo") => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
 
     const formData = new FormData();
     formData.append("file", file);
-
-    if (target === "post") setUploadingImage(true);
     if (target === "logo") setUploadingLogo(true);
 
-    try {
-      const res = await fetch("/api/admin/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
+    const res = await api<{ url: string }>("/api/admin/upload", { method: "POST", body: formData });
+    setUploadingLogo(false);
 
-      if (res.ok && data.url) {
-        showToast("Image uploaded successfully!");
-        if (target === "post" && editingArticle) {
-          setEditingArticle({ ...editingArticle, img: data.url });
-        } else if (target === "logo" && siteConfig) {
-          setSiteConfig({ ...siteConfig, logoUrl: data.url });
-        }
-        loadAllData();
-      } else {
-        showToast(data.error || "Image upload failed");
-      }
-    } catch {
-      showToast("Upload network error");
-    } finally {
-      setUploadingImage(false);
-      setUploadingLogo(false);
+    if (res.ok && res.data?.url) {
+      showToast("Image uploaded successfully!");
+      if (target === "logo" && siteConfig) setSiteConfig({ ...siteConfig, logoUrl: res.data.url });
+      reloadMedia();
+    } else {
+      showToast(res.error || "Image upload failed");
     }
   };
 
-  // 6. Delete Subscriber & Inquiry
+  // 6. Delete subscriber & inquiry
   const handleDeleteSubscriber = async (id?: string) => {
     if (!id) return;
-    try {
-      await fetch(`/api/admin/subscribers?id=${id}`, { method: "DELETE" });
-      showToast("Subscriber deleted");
-      loadAllData();
-    } catch {
-      showToast("Error deleting subscriber");
-    }
+    const res = await api(`/api/admin/subscribers?id=${id}`, { method: "DELETE" });
+    showToast(res.ok ? "Subscriber deleted" : res.error);
+    if (res.ok) loadAllData();
   };
 
   const handleDeleteInquiry = async (id?: string) => {
     if (!id) return;
-    try {
-      await fetch(`/api/admin/inquiries?id=${id}`, { method: "DELETE" });
-      showToast("Inquiry deleted");
-      loadAllData();
-    } catch {
-      showToast("Error deleting inquiry");
-    }
+    const res = await api(`/api/admin/inquiries?id=${id}`, { method: "DELETE" });
+    showToast(res.ok ? "Inquiry deleted" : res.error);
+    if (res.ok) loadAllData();
   };
 
-  // 7. Save Branding / SiteConfig
+  // 7. Save branding
   const handleSaveBranding = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!siteConfig) return;
-
-    try {
-      const res = await fetch("/api/admin/site", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ siteConfig }),
-      });
-      if (res.ok) {
-        showToast("Branding and logo settings saved!");
-        loadAllData();
-      } else {
-        showToast("Failed to save branding");
-      }
-    } catch {
-      showToast("Network error saving branding");
+    const res = await api("/api/admin/site", {
+      method: "POST",
+      body: JSON.stringify({ siteConfig }),
+    });
+    if (res.ok) {
+      showToast("Branding and logo settings saved!");
+      loadAllData();
+    } else {
+      showToast(res.error);
     }
   };
 
-  // 8. Save Homepage Settings
-  const handleSaveHomepage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!homepage) return;
-
-    try {
-      const res = await fetch("/api/admin/site", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ homepage }),
-      });
-      if (res.ok) {
-        showToast("Homepage copy updated successfully!");
-        loadAllData();
-      } else {
-        showToast("Failed to update homepage copy");
-      }
-    } catch {
-      showToast("Network error updating homepage copy");
-    }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard?.writeText(text);
-    showToast("URL copied to clipboard!");
-  };
-
-  // Render Login Gate
+  // Render: loading / login gate
   if (authLoading) {
     return (
       <div className="min-h-screen bg-[#1D2327] flex items-center justify-center text-white">
@@ -418,7 +317,7 @@ export default function AdminPage() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!me) {
     return (
       <div className="min-h-screen bg-[#1D2327] flex flex-col justify-center items-center px-4">
         <div className="w-full max-w-sm">
@@ -446,6 +345,7 @@ export default function AdminPage() {
               <input
                 type="text"
                 required
+                autoComplete="username"
                 value={loginUsername}
                 onChange={(e) => setLoginUsername(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-lg border border-brand-border text-sm text-brand-dark focus:outline-none focus:border-primary"
@@ -459,6 +359,7 @@ export default function AdminPage() {
               <input
                 type="password"
                 required
+                autoComplete="current-password"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-lg border border-brand-border text-sm text-brand-dark focus:outline-none focus:border-primary"
@@ -467,10 +368,11 @@ export default function AdminPage() {
 
             <button
               type="submit"
-              className="w-full py-3 rounded-lg bg-primary hover:bg-primary-dark text-white text-sm font-semibold shadow transition-all duration-200 flex items-center justify-center gap-2"
+              disabled={loginBusy}
+              className="w-full py-3 rounded-lg bg-primary hover:bg-primary-dark text-white text-sm font-semibold shadow transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60"
             >
               <Lock className="w-4 h-4" />
-              <span>Log In to Dashboard</span>
+              <span>{loginBusy ? "Logging in…" : "Log In to Dashboard"}</span>
             </button>
           </form>
 
@@ -484,289 +386,394 @@ export default function AdminPage() {
     );
   }
 
-  // Filtered posts
-  const filteredArticles = articles.filter((a) => {
-    const matchesSearch =
-      a.title.toLowerCase().includes(postSearch.toLowerCase()) ||
-      a.category.toLowerCase().includes(postSearch.toLowerCase());
-    const matchesStatus =
-      postStatusFilter === "all" ||
-      (postStatusFilter === "published" && a.status !== "draft") ||
-      (postStatusFilter === "draft" && a.status === "draft");
-    return matchesSearch && matchesStatus;
-  });
+  // Internal addresses offered in every "link" field
+  const linkSuggestions: LinkSuggestion[] = [
+    { label: "Homepage", href: "/" },
+    { label: "About page", href: "/about" },
+    { label: "Contact page", href: "/contact" },
+    { label: "All posts", href: "/category/all" },
+    { label: "All categories", href: "/category" },
+    { label: "Homepage: featured guide banner", href: "/#guide" },
+    { label: "Homepage: newsletter", href: "/#newsletter" },
+    ...categories
+      .filter((c) => c.slug !== "all")
+      .map((c) => ({ label: `Category: ${c.name}`, href: `/category/${c.slug}` })),
+    ...pages.map((p) => ({ label: `Page: ${p.title}`, href: `/${p.slug}` })),
+    ...articles
+      .slice(0, 40)
+      .map((a) => ({ label: `Post: ${a.title}`, href: `/blog/${a.slug}` })),
+  ];
+
+  const isPostGroup =
+    currentSection === "posts" || currentSection === "post-editor" || currentSection === "categories";
+  const isPageGroup = currentSection === "pages" || currentSection === "page-editor";
 
   return (
+    <AdminEnvContext.Provider
+      value={{
+        media: mediaList,
+        canUpload: allow("upload_files"),
+        onMediaChanged: reloadMedia,
+        categories,
+        linkSuggestions,
+      }}
+    >
     <div className="min-h-screen bg-[#F0F0F1] flex flex-col font-sans">
-      {/* 1. WordPress Top Admin Bar */}
-      <div className="h-10 bg-[#1D2327] text-[#C3C4C7] px-4 flex items-center justify-between text-xs z-30 flex-shrink-0">
-        <div className="flex items-center gap-4">
-          <span className="font-heading font-bold text-white flex items-center gap-1.5">
+      {/* 1. WordPress-style top admin bar */}
+      <div className="h-10 bg-[#1D2327] text-[#C3C4C7] px-2 sm:px-4 flex items-center justify-between text-xs z-30 flex-shrink-0">
+        <div className="flex items-center h-full">
+          <button
+            onClick={() => setCurrentSection("dashboard")}
+            className="h-full px-2.5 flex items-center gap-1.5 font-heading font-bold text-white hover:bg-[#2C3338]"
+            title="Dashboard"
+          >
             <span className="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-[10px] text-white font-bold">
               C
             </span>
-            CalmTouch CMS
-          </span>
+          </button>
+
           <Link
             href="/"
             target="_blank"
-            className="hover:text-white transition-colors flex items-center gap-1"
+            className="h-full px-3 flex items-center gap-1.5 hover:bg-[#2C3338] hover:text-[#72AEE6] transition-colors"
           >
-            <span>Visit Site</span>
-            <ExternalLink className="w-3 h-3" />
+            <Home className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline max-w-[160px] truncate">
+              {siteConfig?.brandName || "Visit Site"}
+            </span>
+            <ExternalLink className="w-3 h-3 opacity-70" />
           </Link>
-          <button
-            onClick={initNewPost}
-            className="hover:text-white transition-colors flex items-center gap-1 font-semibold text-primary"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>New Guide</span>
-          </button>
+
+          {/* + New dropdown */}
+          <div className="relative group h-full">
+            <button className="h-full px-3 flex items-center gap-1.5 hover:bg-[#2C3338] group-hover:bg-[#2C3338] group-hover:text-[#72AEE6] transition-colors focus:outline-none">
+              <Plus className="w-3.5 h-3.5" />
+              <span>New</span>
+            </button>
+            <div className="absolute left-0 top-full min-w-[160px] bg-[#2C3338] shadow-xl py-1 hidden group-hover:block group-focus-within:block">
+              <button
+                onClick={() => openPostEditor(null)}
+                className="w-full text-left px-4 py-2 hover:text-[#72AEE6] hover:bg-[#1D2327] flex items-center gap-2"
+              >
+                <FileText className="w-3.5 h-3.5" /> Post
+              </button>
+              {allow("manage_pages") && (
+                <button
+                  onClick={() => openPageEditor(null)}
+                  className="w-full text-left px-4 py-2 hover:text-[#72AEE6] hover:bg-[#1D2327] flex items-center gap-2"
+                >
+                  <FileIcon className="w-3.5 h-3.5" /> Page
+                </button>
+              )}
+              {allow("upload_files") && (
+                <button
+                  onClick={goToMediaUpload}
+                  className="w-full text-left px-4 py-2 hover:text-[#72AEE6] hover:bg-[#1D2327] flex items-center gap-2"
+                >
+                  <ImageIcon className="w-3.5 h-3.5" /> Media
+                </button>
+              )}
+              {allow("manage_users") && (
+                <button
+                  onClick={() => setCurrentSection("users")}
+                  className="w-full text-left px-4 py-2 hover:text-[#72AEE6] hover:bg-[#1D2327] flex items-center gap-2"
+                >
+                  <Users className="w-3.5 h-3.5" /> User
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <span>Howdy, <strong className="text-white">rehanblogsite</strong></span>
-          <button
-            onClick={handleLogout}
-            className="hover:text-white transition-colors flex items-center gap-1"
-          >
-            <LogOut className="w-3 h-3" />
-            <span>Log Out</span>
+        {/* Howdy dropdown */}
+        <div className="relative group h-full">
+          <button className="h-full px-3 flex items-center gap-2 hover:bg-[#2C3338] group-hover:bg-[#2C3338] transition-colors focus:outline-none">
+            <span className="hidden sm:inline">
+              Howdy, <strong className="text-white">{me.displayName}</strong>
+            </span>
+            <span className="w-6 h-6 rounded-full bg-primary text-white font-bold text-[11px] flex items-center justify-center">
+              {me.displayName.charAt(0).toUpperCase()}
+            </span>
+            <ChevronDown className="w-3 h-3 opacity-70" />
           </button>
+          <div className="absolute right-0 top-full min-w-[200px] bg-[#2C3338] shadow-xl py-1 hidden group-hover:block group-focus-within:block">
+            <div className="px-4 py-2.5 border-b border-white/10">
+              <span className="block text-white font-semibold">{me.displayName}</span>
+              <span className="block text-[11px] text-[#8C8F94]">
+                @{me.username} · {roleLabel(me.role)}
+              </span>
+            </div>
+            <button
+              onClick={() => setCurrentSection("profile")}
+              className="w-full text-left px-4 py-2 hover:text-[#72AEE6] hover:bg-[#1D2327] flex items-center gap-2"
+            >
+              <UserCog className="w-3.5 h-3.5" /> Edit My Profile
+            </button>
+            <button
+              onClick={handleLogout}
+              className="w-full text-left px-4 py-2 hover:text-[#72AEE6] hover:bg-[#1D2327] flex items-center gap-2"
+            >
+              <LogOut className="w-3.5 h-3.5" /> Log Out
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Main Admin Body: Sidebar + Content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* 2. WordPress Left Navigation Sidebar */}
-        <aside className="w-60 bg-[#1D2327] flex-shrink-0 flex flex-col justify-between overflow-y-auto">
+        {/* 2. Left navigation sidebar */}
+        <aside className="w-56 lg:w-60 bg-[#1D2327] flex-shrink-0 flex flex-col justify-between overflow-y-auto">
           <nav className="py-3">
-            <div className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-[#8C8F94]">
-              Main Navigation
-            </div>
-
-            <button
+            <SideItem
+              icon={<LayoutDashboard className="w-4 h-4" />}
+              label="Dashboard"
+              active={currentSection === "dashboard"}
               onClick={() => setCurrentSection("dashboard")}
-              className={`w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm transition-colors ${
-                currentSection === "dashboard"
-                  ? "bg-primary text-white font-semibold"
-                  : "text-[#C3C4C7] hover:bg-[#13171A] hover:text-[#72AEE6]"
-              }`}
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              <span>Dashboard</span>
-            </button>
+            />
 
-            <button
-              onClick={() => {
-                setEditingArticle(null);
-                setCurrentSection("posts");
-              }}
-              className={`w-full text-left px-4 py-2.5 flex items-center justify-between text-sm transition-colors ${
-                currentSection === "posts" || currentSection === "new-post"
-                  ? "bg-primary text-white font-semibold"
-                  : "text-[#C3C4C7] hover:bg-[#13171A] hover:text-[#72AEE6]"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <FileText className="w-4 h-4" />
-                <span>Posts & Guides</span>
-              </div>
-              <span className="text-xs bg-white/20 px-1.5 py-0.5 rounded-full">
-                {articles.length}
-              </span>
-            </button>
+            <SideItem
+              icon={<FileText className="w-4 h-4" />}
+              label="Posts"
+              badge={articles.length}
+              active={isPostGroup}
+              onClick={() => setCurrentSection("posts")}
+            />
+            {isPostGroup && (
+              <SideSub>
+                <SideSubLink
+                  label="All Posts"
+                  active={currentSection === "posts"}
+                  onClick={() => setCurrentSection("posts")}
+                />
+                <SideSubLink
+                  label="Add New"
+                  active={currentSection === "post-editor" && !editorArticle}
+                  onClick={() => openPostEditor(null)}
+                />
+                {allow("manage_categories") && (
+                  <SideSubLink
+                    label="Categories"
+                    active={currentSection === "categories"}
+                    onClick={() => setCurrentSection("categories")}
+                  />
+                )}
+              </SideSub>
+            )}
 
-            <button
-              onClick={() => setCurrentSection("categories")}
-              className={`w-full text-left px-4 py-2.5 flex items-center justify-between text-sm transition-colors ${
-                currentSection === "categories"
-                  ? "bg-primary text-white font-semibold"
-                  : "text-[#C3C4C7] hover:bg-[#13171A] hover:text-[#72AEE6]"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <FolderTree className="w-4 h-4" />
-                <span>Categories</span>
-              </div>
-              <span className="text-xs bg-white/20 px-1.5 py-0.5 rounded-full">
-                {categories.length}
-              </span>
-            </button>
-
-            <button
+            <SideItem
+              icon={<ImageIcon className="w-4 h-4" />}
+              label="Media"
+              active={currentSection === "media"}
               onClick={() => setCurrentSection("media")}
-              className={`w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm transition-colors ${
-                currentSection === "media"
-                  ? "bg-primary text-white font-semibold"
-                  : "text-[#C3C4C7] hover:bg-[#13171A] hover:text-[#72AEE6]"
-              }`}
-            >
-              <ImageIcon className="w-4 h-4" />
-              <span>Media Library</span>
-            </button>
+            />
 
-            <div className="px-4 pt-6 pb-2 text-[10px] font-bold uppercase tracking-wider text-[#8C8F94]">
-              Engagement & Leads
-            </div>
+            {allow("manage_pages") && (
+              <>
+                <SideItem
+                  icon={<FileIcon className="w-4 h-4" />}
+                  label="Pages"
+                  badge={pages.length}
+                  active={isPageGroup}
+                  onClick={() => setCurrentSection("pages")}
+                />
+                {isPageGroup && (
+                  <SideSub>
+                    <SideSubLink
+                      label="All Pages"
+                      active={currentSection === "pages"}
+                      onClick={() => setCurrentSection("pages")}
+                    />
+                    <SideSubLink
+                      label="Add New"
+                      active={currentSection === "page-editor" && !editorPage}
+                      onClick={() => openPageEditor(null)}
+                    />
+                  </SideSub>
+                )}
+              </>
+            )}
 
-            <button
-              onClick={() => setCurrentSection("subscribers")}
-              className={`w-full text-left px-4 py-2.5 flex items-center justify-between text-sm transition-colors ${
-                currentSection === "subscribers"
-                  ? "bg-primary text-white font-semibold"
-                  : "text-[#C3C4C7] hover:bg-[#13171A] hover:text-[#72AEE6]"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Users className="w-4 h-4" />
-                <span>Subscribers</span>
-              </div>
-              <span className="text-xs bg-white/20 px-1.5 py-0.5 rounded-full">
-                {subscribers.length}
-              </span>
-            </button>
+            {allow("view_leads") && (
+              <>
+                <SideHeading>Engagement & Leads</SideHeading>
+                <SideItem
+                  icon={<Users className="w-4 h-4" />}
+                  label="Subscribers"
+                  badge={subscribers.length}
+                  active={currentSection === "subscribers"}
+                  onClick={() => setCurrentSection("subscribers")}
+                />
+                <SideItem
+                  icon={<MessageSquare className="w-4 h-4" />}
+                  label="Contact Messages"
+                  badge={inquiries.length}
+                  active={currentSection === "inquiries"}
+                  onClick={() => setCurrentSection("inquiries")}
+                />
+              </>
+            )}
 
-            <button
-              onClick={() => setCurrentSection("inquiries")}
-              className={`w-full text-left px-4 py-2.5 flex items-center justify-between text-sm transition-colors ${
-                currentSection === "inquiries"
-                  ? "bg-primary text-white font-semibold"
-                  : "text-[#C3C4C7] hover:bg-[#13171A] hover:text-[#72AEE6]"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <MessageSquare className="w-4 h-4" />
-                <span>Contact Messages</span>
-              </div>
-              <span className="text-xs bg-white/20 px-1.5 py-0.5 rounded-full">
-                {inquiries.length}
-              </span>
-            </button>
+            {allow("manage_settings") && (
+              <>
+                <SideHeading>Site Content</SideHeading>
+                <SideItem
+                  icon={<Home className="w-4 h-4" />}
+                  label="Homepage"
+                  active={currentSection === "homepage"}
+                  onClick={() => setCurrentSection("homepage")}
+                />
+                <SideItem
+                  icon={<Info className="w-4 h-4" />}
+                  label="About Page"
+                  active={currentSection === "about"}
+                  onClick={() => setCurrentSection("about")}
+                />
+                <SideItem
+                  icon={<Mail className="w-4 h-4" />}
+                  label="Contact Page"
+                  active={currentSection === "contact"}
+                  onClick={() => setCurrentSection("contact")}
+                />
 
-            <div className="px-4 pt-6 pb-2 text-[10px] font-bold uppercase tracking-wider text-[#8C8F94]">
-              Customization & SEO
-            </div>
+                <SideHeading>Appearance</SideHeading>
+                <SideItem
+                  icon={<MenuIcon className="w-4 h-4" />}
+                  label="Navigation Menu"
+                  active={currentSection === "navigation"}
+                  onClick={() => setCurrentSection("navigation")}
+                />
+                <SideItem
+                  icon={<PanelBottom className="w-4 h-4" />}
+                  label="Footer"
+                  active={currentSection === "footer"}
+                  onClick={() => setCurrentSection("footer")}
+                />
+                <SideItem
+                  icon={<PanelRight className="w-4 h-4" />}
+                  label="Sidebar"
+                  active={currentSection === "sidebar"}
+                  onClick={() => setCurrentSection("sidebar")}
+                />
+                <SideItem
+                  icon={<LayoutTemplate className="w-4 h-4" />}
+                  label="Post & Archive Layout"
+                  active={currentSection === "templates"}
+                  onClick={() => setCurrentSection("templates")}
+                />
+                <SideItem
+                  icon={<Palette className="w-4 h-4" />}
+                  label="Branding & Logo"
+                  active={currentSection === "branding"}
+                  onClick={() => setCurrentSection("branding")}
+                />
+              </>
+            )}
 
-            <button
-              onClick={() => setCurrentSection("branding")}
-              className={`w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm transition-colors ${
-                currentSection === "branding"
-                  ? "bg-primary text-white font-semibold"
-                  : "text-[#C3C4C7] hover:bg-[#13171A] hover:text-[#72AEE6]"
-              }`}
-            >
-              <Palette className="w-4 h-4" />
-              <span>Branding & Logo</span>
-            </button>
+            {allow("manage_settings") && (
+              <>
+                <SideHeading>SEO</SideHeading>
+                <SideItem
+                  icon={<SearchCheck className="w-4 h-4" />}
+                  label="SEO Settings"
+                  active={currentSection === "seo"}
+                  onClick={() => setCurrentSection("seo")}
+                />
+                <SideItem
+                  icon={<CornerUpRight className="w-4 h-4" />}
+                  label="Redirects"
+                  active={currentSection === "redirects"}
+                  onClick={() => setCurrentSection("redirects")}
+                />
+              </>
+            )}
 
-            <button
-              onClick={() => setCurrentSection("settings")}
-              className={`w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm transition-colors ${
-                currentSection === "settings"
-                  ? "bg-primary text-white font-semibold"
-                  : "text-[#C3C4C7] hover:bg-[#13171A] hover:text-[#72AEE6]"
-              }`}
-            >
-              <Settings className="w-4 h-4" />
-              <span>Settings & SEO</span>
-            </button>
+            {allow("manage_users") && (
+              <>
+                <SideHeading>Administration</SideHeading>
+                <SideItem
+                  icon={<UserCog className="w-4 h-4" />}
+                  label="Users"
+                  badge={users.length}
+                  active={currentSection === "users"}
+                  onClick={() => setCurrentSection("users")}
+                />
+              </>
+            )}
           </nav>
 
           <div className="p-4 border-t border-white/10 text-[11px] text-[#8C8F94]">
             CalmTouch CMS Engine
-            <div className="text-[10px] text-primary mt-0.5 font-medium">
-              MongoDB Atlas Active
-            </div>
+            <div className="text-[10px] text-primary mt-0.5 font-medium">{roleLabel(me.role)} access</div>
           </div>
         </aside>
 
-        {/* 3. Main Workspace Area */}
-        <main className="flex-1 overflow-y-auto p-6 sm:p-8">
+        {/* 3. Main workspace */}
+        <div id="admin-main" className="flex-1 overflow-y-auto p-5 sm:p-8">
           {/* SECTION: DASHBOARD */}
           {currentSection === "dashboard" && (
             <div className="space-y-6 max-w-6xl">
               <div>
-                <h1 className="font-heading font-bold text-2xl text-brand-dark mb-1">
-                  Dashboard
-                </h1>
+                <h1 className="font-heading font-bold text-2xl text-brand-dark mb-1">Dashboard</h1>
                 <p className="text-xs text-brand-muted">
-                  Welcome to your CalmTouch WordPress-style Content Management System.
+                  Welcome back, {me.displayName}. Here&apos;s what&apos;s happening on your site.
                 </p>
               </div>
 
-              {/* Stats Widgets */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="p-5 rounded-xl bg-white border border-[#DCDCDE] shadow-sm">
-                  <span className="text-xs font-semibold text-brand-muted uppercase block">
-                    Published Guides
-                  </span>
-                  <div className="font-heading font-bold text-3xl text-primary mt-1">
-                    {articles.length}
-                  </div>
-                  <button
-                    onClick={() => setCurrentSection("posts")}
-                    className="text-xs text-primary font-semibold hover:underline mt-2 inline-block"
-                  >
-                    Manage Posts →
-                  </button>
-                </div>
-
-                <div className="p-5 rounded-xl bg-white border border-[#DCDCDE] shadow-sm">
-                  <span className="text-xs font-semibold text-brand-muted uppercase block">
-                    Categories
-                  </span>
-                  <div className="font-heading font-bold text-3xl text-brand-dark mt-1">
-                    {categories.length}
-                  </div>
-                  <button
-                    onClick={() => setCurrentSection("categories")}
-                    className="text-xs text-primary font-semibold hover:underline mt-2 inline-block"
-                  >
-                    Manage Categories →
-                  </button>
-                </div>
-
-                <div className="p-5 rounded-xl bg-white border border-[#DCDCDE] shadow-sm">
-                  <span className="text-xs font-semibold text-brand-muted uppercase block">
-                    Subscribers
-                  </span>
-                  <div className="font-heading font-bold text-3xl text-brand-dark mt-1">
-                    {subscribers.length}
-                  </div>
-                  <button
-                    onClick={() => setCurrentSection("subscribers")}
-                    className="text-xs text-primary font-semibold hover:underline mt-2 inline-block"
-                  >
-                    View Subscribers →
-                  </button>
-                </div>
-
-                <div className="p-5 rounded-xl bg-white border border-[#DCDCDE] shadow-sm">
-                  <span className="text-xs font-semibold text-brand-muted uppercase block">
-                    Inquiries
-                  </span>
-                  <div className="font-heading font-bold text-3xl text-emerald-600 mt-1">
-                    {inquiries.length}
-                  </div>
-                  <button
-                    onClick={() => setCurrentSection("inquiries")}
-                    className="text-xs text-primary font-semibold hover:underline mt-2 inline-block"
-                  >
-                    View Messages →
-                  </button>
-                </div>
+                <StatCard
+                  label="Published Posts"
+                  value={articles.filter((a) => (a.status || "published") === "published").length}
+                  accent="text-primary"
+                  action="Manage Posts →"
+                  onAction={() => setCurrentSection("posts")}
+                />
+                <StatCard
+                  label="Drafts & Scheduled"
+                  value={articles.filter((a) => a.status === "draft" || a.status === "scheduled").length}
+                  action="Review →"
+                  onAction={() => setCurrentSection("posts")}
+                />
+                {allow("manage_categories") && (
+                  <StatCard
+                    label="Categories"
+                    value={categories.length}
+                    action="Manage Categories →"
+                    onAction={() => setCurrentSection("categories")}
+                  />
+                )}
+                {allow("view_leads") && (
+                  <StatCard
+                    label="Subscribers"
+                    value={subscribers.length}
+                    action="View Subscribers →"
+                    onAction={() => setCurrentSection("subscribers")}
+                  />
+                )}
+                {allow("view_leads") && (
+                  <StatCard
+                    label="Inquiries"
+                    value={inquiries.length}
+                    accent="text-emerald-600"
+                    action="View Messages →"
+                    onAction={() => setCurrentSection("inquiries")}
+                  />
+                )}
+                {allow("manage_pages") && (
+                  <StatCard
+                    label="Pages"
+                    value={pages.length}
+                    action="Manage Pages →"
+                    onAction={() => setCurrentSection("pages")}
+                  />
+                )}
               </div>
 
-              {/* Quick Actions & Recent Posts */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 <div className="lg:col-span-8 bg-white rounded-xl border border-[#DCDCDE] shadow-sm p-6 space-y-4">
                   <div className="flex items-center justify-between pb-3 border-b border-brand-borderLight">
-                    <h3 className="font-heading font-semibold text-base text-brand-dark">
-                      Recently Published Wellness Guides
-                    </h3>
+                    <h3 className="font-heading font-semibold text-base text-brand-dark">Recent Posts</h3>
                     <button
-                      onClick={initNewPost}
+                      onClick={() => openPostEditor(null)}
                       className="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary-dark transition-colors flex items-center gap-1"
                     >
                       <Plus className="w-3.5 h-3.5" />
@@ -775,25 +782,25 @@ export default function AdminPage() {
                   </div>
 
                   <div className="divide-y divide-brand-borderLight">
+                    {articles.length === 0 && (
+                      <p className="py-6 text-center text-xs text-brand-muted">No posts yet.</p>
+                    )}
                     {articles.slice(0, 5).map((art) => (
-                      <div
-                        key={art.slug}
-                        className="py-3 flex items-center justify-between gap-4"
-                      >
+                      <div key={art.slug} className="py-3 flex items-center justify-between gap-4">
                         <div className="min-w-0 flex-1">
-                          <h4 className="font-medium text-sm text-brand-dark truncate">
-                            {art.title}
-                          </h4>
+                          <h4 className="font-medium text-sm text-brand-dark truncate">{art.title}</h4>
                           <span className="text-xs text-brand-muted">
-                            Category: <strong className="text-primary">{art.category}</strong> • {art.date}
+                            <strong className="text-primary">{art.category}</strong> • {art.date}
+                            {art.status && art.status !== "published" && (
+                              <span className="ml-1.5 uppercase font-bold text-[10px] text-amber-700">
+                                {art.status}
+                              </span>
+                            )}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <button
-                            onClick={() => {
-                              setEditingArticle(art);
-                              setCurrentSection("new-post");
-                            }}
+                            onClick={() => openPostEditor(art)}
                             className="text-xs font-semibold text-primary hover:underline"
                           >
                             Edit
@@ -816,821 +823,121 @@ export default function AdminPage() {
                     Quick Shortcuts
                   </h3>
                   <div className="space-y-2">
-                    <button
-                      onClick={() => setCurrentSection("branding")}
-                      className="w-full text-left p-3 rounded-lg bg-brand-bgSoft hover:bg-brand-bgLight transition-colors text-xs font-semibold text-brand-dark flex items-center justify-between"
-                    >
-                      <span>Change Brand Logo / Name</span>
-                      <span>→</span>
-                    </button>
-                    <button
-                      onClick={() => setCurrentSection("categories")}
-                      className="w-full text-left p-3 rounded-lg bg-brand-bgSoft hover:bg-brand-bgLight transition-colors text-xs font-semibold text-brand-dark flex items-center justify-between"
-                    >
-                      <span>Create New Topic Category</span>
-                      <span>→</span>
-                    </button>
-                    <button
-                      onClick={() => setCurrentSection("media")}
-                      className="w-full text-left p-3 rounded-lg bg-brand-bgSoft hover:bg-brand-bgLight transition-colors text-xs font-semibold text-brand-dark flex items-center justify-between"
-                    >
-                      <span>Upload Media Image</span>
-                      <span>→</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* SECTION: ALL POSTS */}
-          {currentSection === "posts" && (
-            <div className="space-y-6 max-w-6xl">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h1 className="font-heading font-bold text-2xl text-brand-dark mb-1">
-                    Posts & Wellness Guides
-                  </h1>
-                  <p className="text-xs text-brand-muted">
-                    Manage all articles appearing across CalmTouch categories and the homepage.
-                  </p>
-                </div>
-                <button
-                  onClick={initNewPost}
-                  className="px-4 py-2 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary-dark transition-colors flex items-center gap-1.5 shadow-sm"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add New Post</span>
-                </button>
-              </div>
-
-              {/* Status and Search Filter Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-2 text-xs font-medium">
-                  <button
-                    onClick={() => setPostStatusFilter("all")}
-                    className={`px-3 py-1.5 rounded-lg transition-colors ${
-                      postStatusFilter === "all" ? "bg-primary text-white" : "bg-white text-brand-dark hover:bg-brand-bgLight border border-brand-border"
-                    }`}
-                  >
-                    All ({articles.length})
-                  </button>
-                  <button
-                    onClick={() => setPostStatusFilter("published")}
-                    className={`px-3 py-1.5 rounded-lg transition-colors ${
-                      postStatusFilter === "published" ? "bg-primary text-white" : "bg-white text-brand-dark hover:bg-brand-bgLight border border-brand-border"
-                    }`}
-                  >
-                    Published ({articles.filter((a) => a.status !== "draft").length})
-                  </button>
-                  <button
-                    onClick={() => setPostStatusFilter("draft")}
-                    className={`px-3 py-1.5 rounded-lg transition-colors ${
-                      postStatusFilter === "draft" ? "bg-primary text-white" : "bg-white text-brand-dark hover:bg-brand-bgLight border border-brand-border"
-                    }`}
-                  >
-                    Drafts ({articles.filter((a) => a.status === "draft").length})
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-[#DCDCDE] shadow-sm max-w-md w-full sm:w-auto">
-                  <Search className="w-4 h-4 text-brand-muted" />
-                  <input
-                    type="text"
-                    placeholder="Filter posts by title or category..."
-                    value={postSearch}
-                    onChange={(e) => setPostSearch(e.target.value)}
-                    className="w-full bg-transparent text-xs text-brand-dark focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* WordPress-style Posts Table */}
-              <div className="bg-white rounded-xl border border-[#DCDCDE] shadow-sm overflow-hidden">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="bg-brand-bgSoft border-b border-[#DCDCDE] text-brand-dark font-bold">
-                      <th className="p-3.5">Title</th>
-                      <th className="p-3.5">Status</th>
-                      <th className="p-3.5">Category</th>
-                      <th className="p-3.5">Author</th>
-                      <th className="p-3.5">Date</th>
-                      <th className="p-3.5 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-brand-borderLight">
-                    {filteredArticles.map((art) => (
-                      <tr key={art.slug} className="hover:bg-brand-bgSoft/60 transition-colors">
-                        <td className="p-3.5 font-semibold text-brand-dark">
-                          <div className="flex items-center gap-3">
-                            {art.img && (
-                              <div className="relative w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 bg-brand-bgLight">
-                                <Image
-                                  src={art.img}
-                                  alt={art.title}
-                                  fill
-                                  sizes="36px"
-                                  className="object-cover"
-                                />
-                              </div>
-                            )}
-                            <div>
-                              <span className="text-sm font-semibold text-brand-dark block">
-                                {art.title}
-                              </span>
-                              <span className="text-[11px] text-brand-muted">
-                                /{art.slug}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-3.5">
-                          <span
-                            className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                              art.status === "draft"
-                                ? "bg-amber-100 text-amber-800"
-                                : "bg-emerald-100 text-emerald-800"
-                            }`}
-                          >
-                            {art.status === "draft" ? "Draft" : "Published"}
-                          </span>
-                        </td>
-                        <td className="p-3.5">
-                          <span className="inline-block px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold text-[11px]">
-                            {art.category}
-                          </span>
-                        </td>
-                        <td className="p-3.5 text-brand-muted">{art.author}</td>
-                        <td className="p-3.5 text-brand-muted">{art.date}</td>
-                        <td className="p-3.5 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Link
-                              href={`/blog/${art.slug}`}
-                              target="_blank"
-                              className="p-1.5 rounded-md text-brand-muted hover:text-brand-dark hover:bg-brand-bgLight"
-                              title="View Post"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </Link>
-                            <button
-                              onClick={() => {
-                                setEditingArticle(art);
-                                setCurrentSection("new-post");
-                              }}
-                              className="p-1.5 rounded-md text-brand-muted hover:text-primary hover:bg-brand-bgLight"
-                              title="Edit Post"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeletePost(art.slug)}
-                              className="p-1.5 rounded-md text-brand-muted hover:text-red-600 hover:bg-red-50"
-                              title="Delete Post"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* SECTION: ADD / EDIT POST (WordPress Post Editor with SEO Suite) */}
-          {currentSection === "new-post" && editingArticle && (
-            <div className="space-y-6 max-w-5xl">
-              <div className="flex items-center justify-between pb-4 border-b border-[#DCDCDE]">
-                <div>
-                  <h1 className="font-heading font-bold text-2xl text-brand-dark">
-                    {editingArticle.slug ? "Edit Post" : "Add New Post"}
-                  </h1>
-                  <p className="text-xs text-brand-muted">
-                    Compose rich content, configure live Google SEO snippets, and assign categories.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setCurrentSection("posts")}
-                  className="px-3 py-1.5 rounded-lg border border-brand-border text-xs font-semibold text-brand-dark hover:bg-brand-bgLight"
-                >
-                  ← Back to All Posts
-                </button>
-              </div>
-
-              <form onSubmit={handleSavePost} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* Main Content Column */}
-                <div className="lg:col-span-8 space-y-6">
-                  <div className="bg-white p-6 rounded-xl border border-[#DCDCDE] shadow-sm space-y-5">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
-                        Post Title *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. 5 Easy Neck Massage Techniques for Desk Workers"
-                        value={editingArticle.title}
-                        onChange={(e) => {
-                          const title = e.target.value;
-                          setEditingArticle({
-                            ...editingArticle,
-                            title,
-                            slug: editingArticle.slug ? editingArticle.slug : slugify(title),
-                          });
-                        }}
-                        className="w-full px-4 py-3 rounded-lg border border-brand-border text-base font-semibold text-brand-dark focus:outline-none focus:border-primary"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
-                        Permalink / URL Slug *
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-brand-muted">/blog/</span>
-                        <input
-                          type="text"
-                          required
-                          value={editingArticle.slug}
-                          onChange={(e) =>
-                            setEditingArticle({ ...editingArticle, slug: slugify(e.target.value) })
-                          }
-                          className="flex-1 px-3 py-2 rounded-lg border border-brand-border text-xs text-brand-dark focus:outline-none focus:border-primary"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
-                        Intro Excerpt
-                      </label>
-                      <textarea
-                        rows={3}
-                        placeholder="Short intro summarizing what this guide covers..."
-                        value={editingArticle.intro}
-                        onChange={(e) =>
-                          setEditingArticle({ ...editingArticle, intro: e.target.value })
-                        }
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-brand-border text-xs text-brand-dark focus:outline-none focus:border-primary"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
-                        Quick Summary Box
-                      </label>
-                      <textarea
-                        rows={2}
-                        placeholder="Highlighted callout text displayed in the green summary box..."
-                        value={editingArticle.quickSummary || ""}
-                        onChange={(e) =>
-                          setEditingArticle({ ...editingArticle, quickSummary: e.target.value })
-                        }
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-brand-border text-xs text-brand-dark focus:outline-none focus:border-primary"
-                      />
-                    </div>
-
-                    {/* Content Sections Builder */}
-                    <div className="pt-4 border-t border-brand-borderLight space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-heading font-semibold text-sm text-brand-dark">
-                          Content Sections (Headings & Paragraphs)
-                        </h3>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingArticle({
-                              ...editingArticle,
-                              sections: [
-                                ...editingArticle.sections,
-                                { heading: "New Technique Section", text: "" },
-                              ],
-                            });
-                          }}
-                          className="text-xs font-semibold text-primary hover:underline"
-                        >
-                          + Add Section
-                        </button>
-                      </div>
-
-                      {editingArticle.sections.map((sec, idx) => (
-                        <div
-                          key={idx}
-                          className="p-4 rounded-xl bg-brand-bgSoft border border-brand-borderLight space-y-2 relative"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold text-brand-muted">
-                              Section {idx + 1}
-                            </span>
-                            {editingArticle.sections.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const newSecs = editingArticle.sections.filter((_, i) => i !== idx);
-                                  setEditingArticle({ ...editingArticle, sections: newSecs });
-                                }}
-                                className="text-xs text-red-500 hover:underline"
-                              >
-                                Remove
-                              </button>
-                            )}
-                          </div>
-                          <input
-                            type="text"
-                            placeholder="Section Heading"
-                            value={sec.heading}
-                            onChange={(e) => {
-                              const newSecs = [...editingArticle.sections];
-                              newSecs[idx].heading = e.target.value;
-                              setEditingArticle({ ...editingArticle, sections: newSecs });
-                            }}
-                            className="w-full px-3 py-2 rounded-lg border border-brand-border text-xs font-semibold text-brand-dark"
-                          />
-                          <textarea
-                            rows={4}
-                            placeholder="Detailed instructions or advice for this section..."
-                            value={sec.text}
-                            onChange={(e) => {
-                              const newSecs = [...editingArticle.sections];
-                              newSecs[idx].text = e.target.value;
-                              setEditingArticle({ ...editingArticle, sections: newSecs });
-                            }}
-                            className="w-full px-3 py-2 rounded-lg border border-brand-border text-xs text-brand-dark leading-relaxed"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 4. YOAST / RANKMATH STYLE SEO SUITE */}
-                  <div className="bg-white p-6 rounded-xl border border-[#DCDCDE] shadow-sm space-y-5">
-                    <div className="flex items-center justify-between pb-3 border-b border-brand-borderLight">
-                      <div className="flex items-center gap-2">
-                        <Globe className="w-4 h-4 text-primary" />
-                        <h3 className="font-heading font-bold text-sm text-brand-dark">
-                          Google Search & SEO Optimization (Yoast Style)
-                        </h3>
-                      </div>
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200">
-                        AdSense & Indexing Ready
-                      </span>
-                    </div>
-
-                    {/* Google Snippet Live Preview */}
-                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
-                        Google Search Snippet Preview
-                      </span>
-                      <div className="text-xs text-slate-600 flex items-center gap-1">
-                        <span>https://calmtouch.com</span>
-                        <span>›</span>
-                        <span>blog</span>
-                        <span>›</span>
-                        <span className="text-slate-800 font-medium">
-                          {editingArticle.slug || "post-slug"}
-                        </span>
-                      </div>
-                      <div className="text-base font-medium text-[#1a0dab] hover:underline cursor-pointer truncate">
-                        {editingArticle.metaTitle || editingArticle.title || "Post Title Goes Here — CalmTouch"}
-                      </div>
-                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                        {editingArticle.metaDescription ||
-                          editingArticle.intro ||
-                          "Explore our evidence-aligned massage guidance, practical body recovery tips, and everyday stress relief routines."}
-                      </p>
-                    </div>
-
-                    {/* SEO Meta Title */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-xs font-bold uppercase tracking-wider text-brand-dark">
-                          SEO Meta Title
-                        </label>
-                        <span
-                          className={`text-[11px] ${
-                            (editingArticle.metaTitle || editingArticle.title).length > 60
-                              ? "text-amber-600 font-semibold"
-                              : "text-brand-muted"
-                          }`}
-                        >
-                          {(editingArticle.metaTitle || editingArticle.title).length} / 60 chars
-                        </span>
-                      </div>
-                      <input
-                        type="text"
-                        placeholder="Custom Title for Google (defaults to post title)"
-                        value={editingArticle.metaTitle || ""}
-                        onChange={(e) =>
-                          setEditingArticle({ ...editingArticle, metaTitle: e.target.value })
-                        }
-                        className="w-full px-3.5 py-2 rounded-lg border border-brand-border text-xs text-brand-dark focus:outline-none focus:border-primary"
-                      />
-                    </div>
-
-                    {/* SEO Meta Description */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-xs font-bold uppercase tracking-wider text-brand-dark">
-                          SEO Meta Description
-                        </label>
-                        <span
-                          className={`text-[11px] ${
-                            (editingArticle.metaDescription || editingArticle.intro).length > 160
-                              ? "text-amber-600 font-semibold"
-                              : "text-brand-muted"
-                          }`}
-                        >
-                          {(editingArticle.metaDescription || editingArticle.intro).length} / 160 chars
-                        </span>
-                      </div>
-                      <textarea
-                        rows={2}
-                        placeholder="Search engine snippet description (defaults to intro excerpt)"
-                        value={editingArticle.metaDescription || ""}
-                        onChange={(e) =>
-                          setEditingArticle({ ...editingArticle, metaDescription: e.target.value })
-                        }
-                        className="w-full px-3.5 py-2 rounded-lg border border-brand-border text-xs text-brand-dark focus:outline-none focus:border-primary"
-                      />
-                    </div>
-
-                    {/* Focus Keywords */}
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                        Focus Keywords (comma separated)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="neck pain, desk stretches, cervical relief"
-                        value={editingArticle.keywords?.join(", ") || ""}
-                        onChange={(e) =>
-                          setEditingArticle({
-                            ...editingArticle,
-                            keywords: e.target.value.split(",").map((k) => k.trim()),
-                          })
-                        }
-                        className="w-full px-3.5 py-2 rounded-lg border border-brand-border text-xs text-brand-dark focus:outline-none focus:border-primary"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sidebar Column (Publish, Category, Media) */}
-                <div className="lg:col-span-4 space-y-5">
-                  {/* Publish Box */}
-                  <div className="bg-white p-5 rounded-xl border border-[#DCDCDE] shadow-sm space-y-4">
-                    <h3 className="font-heading font-bold text-sm text-brand-dark pb-2 border-b border-brand-borderLight">
-                      Publish Settings
-                    </h3>
-
-                    {/* Status Toggle */}
-                    <div>
-                      <label className="block text-xs font-semibold text-brand-dark mb-1.5">
-                        Post Status
-                      </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setEditingArticle({ ...editingArticle, status: "published" })}
-                          className={`py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                            editingArticle.status !== "draft"
-                              ? "bg-emerald-600 text-white"
-                              : "bg-brand-bgSoft text-brand-dark border border-brand-border"
-                          }`}
-                        >
-                          Published
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditingArticle({ ...editingArticle, status: "draft" })}
-                          className={`py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                            editingArticle.status === "draft"
-                              ? "bg-amber-600 text-white"
-                              : "bg-brand-bgSoft text-brand-dark border border-brand-border"
-                          }`}
-                        >
-                          Draft
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-brand-dark mb-1">
-                        Category *
-                      </label>
-                      <select
-                        value={editingArticle.category}
-                        onChange={(e) =>
-                          setEditingArticle({ ...editingArticle, category: e.target.value })
-                        }
-                        className="w-full px-3 py-2 rounded-lg border border-brand-border text-xs text-brand-dark focus:outline-none focus:border-primary bg-white"
-                      >
-                        {categories.map((cat) => (
-                          <option key={cat.slug} value={cat.name}>
-                            {cat.name}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="text-[11px] text-brand-muted mt-1">
-                        Selected articles automatically appear on this category page.
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-brand-dark mb-1">
-                        Author Name
-                      </label>
-                      <input
-                        type="text"
-                        value={editingArticle.author}
-                        onChange={(e) =>
-                          setEditingArticle({ ...editingArticle, author: e.target.value })
-                        }
-                        className="w-full px-3 py-2 rounded-lg border border-brand-border text-xs text-brand-dark focus:outline-none focus:border-primary"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-brand-dark mb-1">
-                        Publication Date
-                      </label>
-                      <input
-                        type="text"
-                        value={editingArticle.date}
-                        onChange={(e) =>
-                          setEditingArticle({ ...editingArticle, date: e.target.value })
-                        }
-                        className="w-full px-3 py-2 rounded-lg border border-brand-border text-xs text-brand-dark focus:outline-none focus:border-primary"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="w-full py-2.5 rounded-lg bg-primary hover:bg-primary-dark text-white text-xs font-semibold shadow transition-all duration-200 flex items-center justify-center gap-2"
-                    >
-                      <Save className="w-4 h-4" />
-                      <span>{editingArticle.status === "draft" ? "Save as Draft" : "Publish to Live Site"}</span>
-                    </button>
-                  </div>
-
-                  {/* Featured Image Box with Media Picker Modal */}
-                  <div className="bg-white p-5 rounded-xl border border-[#DCDCDE] shadow-sm space-y-4">
-                    <h3 className="font-heading font-bold text-sm text-brand-dark pb-2 border-b border-brand-borderLight">
-                      Featured Image
-                    </h3>
-
-                    {editingArticle.img ? (
-                      <div className="space-y-3">
-                        <div className="relative aspect-[16/10] rounded-lg overflow-hidden border border-brand-border bg-brand-bgLight">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={editingArticle.img}
-                            alt="Preview"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          value={editingArticle.img}
-                          onChange={(e) =>
-                            setEditingArticle({ ...editingArticle, img: e.target.value })
-                          }
-                          className="w-full px-3 py-1.5 rounded-lg border border-brand-border text-[11px] text-brand-muted"
-                        />
-                      </div>
-                    ) : (
-                      <div className="p-4 rounded-lg bg-brand-bgSoft border border-dashed border-brand-border text-center text-xs text-brand-muted">
-                        No image selected
-                      </div>
+                    {allow("manage_settings") && (
+                      <Shortcut label="Edit Homepage Hero" onClick={() => setCurrentSection("homepage")} />
                     )}
-
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => handleUploadImage(e, "post")}
-                    />
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        disabled={uploadingImage}
-                        onClick={() => fileInputRef.current?.click()}
-                        className="py-2 rounded-lg border border-primary text-primary hover:bg-primary/10 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
-                      >
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>{uploadingImage ? "Uploading..." : "Upload File"}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setMediaPickerOpen(true)}
-                        className="py-2 rounded-lg bg-brand-bgSoft border border-brand-border hover:bg-brand-bgLight text-brand-dark text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
-                      >
-                        <ImageIcon className="w-3.5 h-3.5" />
-                        <span>Media Library</span>
-                      </button>
-                    </div>
+                    {allow("manage_settings") && (
+                      <Shortcut label="Change Brand Logo / Name" onClick={() => setCurrentSection("branding")} />
+                    )}
+                    {allow("manage_categories") && (
+                      <Shortcut label="Create New Category" onClick={() => setCurrentSection("categories")} />
+                    )}
+                    {allow("manage_pages") && (
+                      <Shortcut label="Add a Page" onClick={() => openPageEditor(null)} />
+                    )}
+                    <Shortcut label="Open Media Library" onClick={() => setCurrentSection("media")} />
                   </div>
                 </div>
-              </form>
+              </div>
             </div>
+          )}
+
+          {/* SECTION: POSTS */}
+          {currentSection === "posts" && (
+            <PostsList
+              articles={articles}
+              me={me}
+              onNew={() => openPostEditor(null)}
+              onEdit={openPostEditor}
+              onChanged={() => loadAllData()}
+            />
+          )}
+
+          {currentSection === "post-editor" && (
+            <PostEditor
+              key={editorKey}
+              initial={editorArticle}
+              categories={categories}
+              media={mediaList}
+              me={me}
+              onSaved={async () => {
+                await loadAllData();
+                setCurrentSection("posts");
+              }}
+              onCancel={() => setCurrentSection("posts")}
+              onMediaChanged={reloadMedia}
+            />
           )}
 
           {/* SECTION: CATEGORIES */}
-          {currentSection === "categories" && (
-            <div className="space-y-6 max-w-6xl">
-              <div>
-                <h1 className="font-heading font-bold text-2xl text-brand-dark mb-1">
-                  Categories
-                </h1>
-                <p className="text-xs text-brand-muted">
-                  Create, edit, and manage blog categories. All categories automatically appear in the navbar dropdown and category pages.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                <div className="lg:col-span-5 bg-white p-6 rounded-xl border border-[#DCDCDE] shadow-sm space-y-4">
-                  <h3 className="font-heading font-bold text-sm text-brand-dark pb-2 border-b border-brand-borderLight">
-                    Add New Category
-                  </h3>
-
-                  <form onSubmit={handleCreateCategory} className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                        Category Name *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. Hot Stone Therapy"
-                        value={newCatName}
-                        onChange={(e) => {
-                          setNewCatName(e.target.value);
-                          if (!newCatSlug) setNewCatSlug(slugify(e.target.value));
-                        }}
-                        className="w-full px-3.5 py-2 rounded-lg border border-brand-border text-xs text-brand-dark focus:outline-none focus:border-primary"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                        Slug (URL identifier)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="hot-stone-therapy"
-                        value={newCatSlug}
-                        onChange={(e) => setNewCatSlug(slugify(e.target.value))}
-                        className="w-full px-3.5 py-2 rounded-lg border border-brand-border text-xs text-brand-dark focus:outline-none focus:border-primary"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                        Description
-                      </label>
-                      <textarea
-                        rows={3}
-                        placeholder="Short summary displayed at the top of this category's archive page..."
-                        value={newCatDesc}
-                        onChange={(e) => setNewCatDesc(e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-lg border border-brand-border text-xs text-brand-dark focus:outline-none focus:border-primary"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="px-5 py-2 rounded-lg bg-primary hover:bg-primary-dark text-white text-xs font-semibold shadow transition-all duration-200 flex items-center gap-1.5"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Add New Category</span>
-                    </button>
-                  </form>
-                </div>
-
-                <div className="lg:col-span-7 bg-white rounded-xl border border-[#DCDCDE] shadow-sm overflow-hidden">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-brand-bgSoft border-b border-[#DCDCDE] text-brand-dark font-bold">
-                        <th className="p-3.5">Name</th>
-                        <th className="p-3.5">Slug</th>
-                        <th className="p-3.5">Articles</th>
-                        <th className="p-3.5 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-brand-borderLight">
-                      {categories.map((cat) => (
-                        <tr key={cat.slug} className="hover:bg-brand-bgSoft/60 transition-colors">
-                          <td className="p-3.5 font-semibold text-brand-dark">
-                            <span className="block">{cat.name}</span>
-                            <span className="text-[11px] text-brand-muted line-clamp-1">
-                              {cat.description}
-                            </span>
-                          </td>
-                          <td className="p-3.5 text-brand-muted">/{cat.slug}</td>
-                          <td className="p-3.5 font-bold text-primary">
-                            {articles.filter(
-                              (a) => a.category.toLowerCase().trim() === cat.name.toLowerCase().trim()
-                            ).length}
-                          </td>
-                          <td className="p-3.5 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Link
-                                href={`/category/${cat.slug}`}
-                                target="_blank"
-                                className="p-1 rounded text-brand-muted hover:text-brand-dark"
-                                title="View Category Page"
-                              >
-                                <ExternalLink className="w-3.5 h-3.5" />
-                              </Link>
-                              {cat.slug !== "all" && (
-                                <button
-                                  onClick={() => handleDeleteCategory(cat.slug)}
-                                  className="p-1 rounded text-brand-muted hover:text-red-600"
-                                  title="Delete Category"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+          {currentSection === "categories" && allow("manage_categories") && (
+            <CategoriesSection categories={categories} onChanged={() => loadAllData()} />
           )}
 
-          {/* SECTION: MEDIA LIBRARY */}
+          {/* SECTION: MEDIA */}
           {currentSection === "media" && (
-            <div className="space-y-6 max-w-6xl">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h1 className="font-heading font-bold text-2xl text-brand-dark mb-1">
-                    Media Library
-                  </h1>
-                  <p className="text-xs text-brand-muted">
-                    Upload images to use for blog posts, headers, or your brand logo.
-                  </p>
-                </div>
-
-                <input
-                  ref={mediaLibraryInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => handleUploadImage(e, "media")}
-                />
-
-                <button
-                  onClick={() => mediaLibraryInputRef.current?.click()}
-                  className="px-4 py-2 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary-dark transition-colors flex items-center gap-1.5 shadow-sm"
-                >
-                  <Upload className="w-4 h-4" />
-                  <span>Upload Image File</span>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {mediaList.map((m) => (
-                  <div
-                    key={m.url}
-                    className="group bg-white rounded-xl border border-[#DCDCDE] overflow-hidden shadow-sm flex flex-col"
-                  >
-                    <div className="relative aspect-square bg-brand-bgLight">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={m.url}
-                        alt={m.filename}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
-                    </div>
-                    <div className="p-2.5 flex flex-col justify-between flex-1">
-                      <span className="text-[11px] font-medium text-brand-dark truncate block">
-                        {m.filename}
-                      </span>
-                      <button
-                        onClick={() => copyToClipboard(m.url)}
-                        className="mt-2 text-[10px] font-semibold text-primary hover:underline flex items-center gap-1"
-                      >
-                        <Copy className="w-3 h-3" />
-                        <span>Copy URL</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <MediaSection
+              items={mediaList}
+              role={me.role}
+              usedIn={mediaUsage}
+              onChanged={reloadMedia}
+              uploadRequest={mediaUploadRequest}
+            />
           )}
+
+          {/* SECTION: PAGES */}
+          {currentSection === "pages" && allow("manage_pages") && (
+            <PagesList
+              pages={pages}
+              onNew={() => openPageEditor(null)}
+              onEdit={openPageEditor}
+              onChanged={() => loadAllData()}
+            />
+          )}
+
+          {currentSection === "page-editor" && allow("manage_pages") && (
+            <PageEditor
+              key={editorKey}
+              initial={editorPage}
+              media={mediaList}
+              me={me}
+              onSaved={async () => {
+                await loadAllData();
+                setCurrentSection("pages");
+              }}
+              onCancel={() => setCurrentSection("pages")}
+              onMediaChanged={reloadMedia}
+            />
+          )}
+
+          {/* SECTION: USERS & PROFILE */}
+          {currentSection === "users" && allow("manage_users") && (
+            <UsersSection users={users} meUsername={me.username} onChanged={() => loadAllData()} />
+          )}
+
+          {currentSection === "profile" && (
+            <ProfileSection
+              me={me}
+              onSaved={async () => {
+                const res = await api<{ authenticated: boolean; user: Me }>("/api/admin/auth");
+                if (res.data?.user) setMe(res.data.user);
+              }}
+            />
+          )}
+
+          {/* SECTION: SITE CONTENT EDITORS */}
+          {currentSection === "homepage" && allow("manage_settings") && <HomepageEditor />}
+          {currentSection === "about" && allow("manage_settings") && <AboutEditor />}
+          {currentSection === "contact" && allow("manage_settings") && <ContactEditor />}
+          {currentSection === "navigation" && allow("manage_settings") && <NavigationEditor />}
+          {currentSection === "footer" && allow("manage_settings") && <FooterEditor />}
+          {currentSection === "sidebar" && allow("manage_settings") && <SidebarEditor />}
+          {currentSection === "templates" && allow("manage_settings") && <TemplatesEditor />}
+          {currentSection === "seo" && allow("manage_settings") && <SeoSettingsEditor />}
+          {currentSection === "redirects" && allow("manage_settings") && <RedirectsEditor />}
 
           {/* SECTION: SUBSCRIBERS */}
-          {currentSection === "subscribers" && (
+          {currentSection === "subscribers" && allow("view_leads") && (
             <div className="space-y-6 max-w-5xl">
               <div>
                 <h1 className="font-heading font-bold text-2xl text-brand-dark mb-1">
@@ -1683,7 +990,7 @@ export default function AdminPage() {
           )}
 
           {/* SECTION: CONTACT INQUIRIES */}
-          {currentSection === "inquiries" && (
+          {currentSection === "inquiries" && allow("view_leads") && (
             <div className="space-y-6 max-w-5xl">
               <div>
                 <h1 className="font-heading font-bold text-2xl text-brand-dark mb-1">
@@ -1746,7 +1053,7 @@ export default function AdminPage() {
           )}
 
           {/* SECTION: BRANDING & LOGO */}
-          {currentSection === "branding" && siteConfig && (
+          {currentSection === "branding" && allow("manage_settings") && siteConfig && (
             <div className="space-y-6 max-w-4xl">
               <div>
                 <h1 className="font-heading font-bold text-2xl text-brand-dark mb-1">
@@ -1880,6 +1187,43 @@ export default function AdminPage() {
                     />
                   </div>
 
+                  <div className="pt-2 border-t border-brand-borderLight space-y-3">
+                    <h4 className="font-heading font-bold text-sm text-brand-dark pt-2">
+                      Social Media Links
+                    </h4>
+                    <p className="text-[11px] text-brand-muted">
+                      Shown as icons in the footer. Leave a field empty to hide that network.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {(
+                        [
+                          ["facebook", "Facebook page URL"],
+                          ["twitter", "Twitter / X profile URL"],
+                          ["instagram", "Instagram profile URL"],
+                          ["linkedin", "LinkedIn page URL"],
+                        ] as const
+                      ).map(([key, label]) => (
+                        <div key={key}>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
+                            {label}
+                          </label>
+                          <input
+                            type="url"
+                            placeholder="https://"
+                            value={siteConfig.socialLinks?.[key] || ""}
+                            onChange={(e) =>
+                              setSiteConfig({
+                                ...siteConfig,
+                                socialLinks: { ...siteConfig.socialLinks, [key]: e.target.value },
+                              })
+                            }
+                            className="w-full px-3.5 py-2 rounded-lg border border-brand-border text-xs text-brand-dark focus:outline-none focus:border-primary"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   <button
                     type="submit"
                     className="px-6 py-2.5 rounded-lg bg-primary hover:bg-primary-dark text-white text-xs font-semibold shadow transition-all duration-200 flex items-center gap-2"
@@ -1891,205 +1235,115 @@ export default function AdminPage() {
               </form>
             </div>
           )}
-
-          {/* SECTION: SETTINGS & HOMEPAGE COPY */}
-          {currentSection === "settings" && homepage && (
-            <div className="space-y-6 max-w-4xl">
-              <div>
-                <h1 className="font-heading font-bold text-2xl text-brand-dark mb-1">
-                  Homepage & Masterclass Content
-                </h1>
-                <p className="text-xs text-brand-muted">
-                  Update headlines, highlights, and promotional banners without touching code.
-                </p>
-              </div>
-
-              <form onSubmit={handleSaveHomepage} className="space-y-6">
-                <div className="bg-white p-6 rounded-xl border border-[#DCDCDE] shadow-sm space-y-4">
-                  <h3 className="font-heading font-bold text-sm text-brand-dark pb-2 border-b border-brand-borderLight">
-                    Hero Section Copy
-                  </h3>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                      Hero Badge
-                    </label>
-                    <input
-                      type="text"
-                      value={homepage.hero.badge}
-                      onChange={(e) =>
-                        setHomepage({
-                          ...homepage,
-                          hero: { ...homepage.hero, badge: e.target.value },
-                        })
-                      }
-                      className="w-full px-3.5 py-2 rounded-lg border border-brand-border text-xs text-brand-dark"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-brand-dark mb-1">
-                        Title Start
-                      </label>
-                      <input
-                        type="text"
-                        value={homepage.hero.titleStart}
-                        onChange={(e) =>
-                          setHomepage({
-                            ...homepage,
-                            hero: { ...homepage.hero, titleStart: e.target.value },
-                          })
-                        }
-                        className="w-full px-3 py-2 rounded-lg border border-brand-border text-xs text-brand-dark"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-brand-dark mb-1">
-                        Highlight Keyword
-                      </label>
-                      <input
-                        type="text"
-                        value={homepage.hero.titleHighlight}
-                        onChange={(e) =>
-                          setHomepage({
-                            ...homepage,
-                            hero: { ...homepage.hero, titleHighlight: e.target.value },
-                          })
-                        }
-                        className="w-full px-3 py-2 rounded-lg border border-brand-border text-xs text-brand-dark"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-brand-dark mb-1">
-                        Title End
-                      </label>
-                      <input
-                        type="text"
-                        value={homepage.hero.titleEnd}
-                        onChange={(e) =>
-                          setHomepage({
-                            ...homepage,
-                            hero: { ...homepage.hero, titleEnd: e.target.value },
-                          })
-                        }
-                        className="w-full px-3 py-2 rounded-lg border border-brand-border text-xs text-brand-dark"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                      Hero Subtitle
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={homepage.hero.subtitle}
-                      onChange={(e) =>
-                        setHomepage({
-                          ...homepage,
-                          hero: { ...homepage.hero, subtitle: e.target.value },
-                        })
-                      }
-                      className="w-full px-3.5 py-2 rounded-lg border border-brand-border text-xs text-brand-dark"
-                    />
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-xl border border-[#DCDCDE] shadow-sm space-y-4">
-                  <h3 className="font-heading font-bold text-sm text-brand-dark pb-2 border-b border-brand-borderLight">
-                    Guidebook Masterclass Banner
-                  </h3>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                      Masterclass Title
-                    </label>
-                    <input
-                      type="text"
-                      value={homepage.guidebook.title}
-                      onChange={(e) =>
-                        setHomepage({
-                          ...homepage,
-                          guidebook: { ...homepage.guidebook, title: e.target.value },
-                        })
-                      }
-                      className="w-full px-3.5 py-2 rounded-lg border border-brand-border text-xs text-brand-dark"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                      Masterclass Description
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={homepage.guidebook.subtitle}
-                      onChange={(e) =>
-                        setHomepage({
-                          ...homepage,
-                          guidebook: { ...homepage.guidebook, subtitle: e.target.value },
-                        })
-                      }
-                      className="w-full px-3.5 py-2 rounded-lg border border-brand-border text-xs text-brand-dark"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="px-6 py-2.5 rounded-lg bg-primary hover:bg-primary-dark text-white text-xs font-semibold shadow transition-all duration-200 flex items-center gap-2"
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>Update Page Copy</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-        </main>
-      </div>
-
-      {/* Media Picker Modal (For inserting images from Media Library) */}
-      {mediaPickerOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl border border-brand-border">
-            <div className="flex items-center justify-between pb-3 border-b border-brand-borderLight">
-              <h3 className="font-heading font-bold text-base text-brand-dark">
-                Select from Media Library
-              </h3>
-              <button
-                onClick={() => setMediaPickerOpen(false)}
-                className="text-xs font-semibold text-brand-muted hover:text-brand-dark"
-              >
-                ✕ Close
-              </button>
-            </div>
-
-            <div className="max-h-96 overflow-y-auto grid grid-cols-3 sm:grid-cols-4 gap-3 p-1">
-              {mediaList.map((m) => (
-                <button
-                  key={m.url}
-                  type="button"
-                  onClick={() => {
-                    if (editingArticle) {
-                      setEditingArticle({ ...editingArticle, img: m.url });
-                      setMediaPickerOpen(false);
-                      showToast("Featured image updated from library!");
-                    }
-                  }}
-                  className="group relative aspect-square rounded-xl overflow-hidden border border-brand-border hover:border-primary hover:scale-105 transition-all focus:outline-none"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.url} alt={m.filename} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-primary/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-xs">
-                    Select
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
-      )}
+      </div>
     </div>
+    </AdminEnvContext.Provider>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Small presentational helpers
+// ---------------------------------------------------------------------------
+
+function SideItem({
+  icon,
+  label,
+  badge,
+  active,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  badge?: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full text-left px-4 py-2.5 flex items-center justify-between text-sm transition-colors ${
+        active
+          ? "bg-primary text-white font-semibold"
+          : "text-[#C3C4C7] hover:bg-[#13171A] hover:text-[#72AEE6]"
+      }`}
+    >
+      <span className="flex items-center gap-3">
+        {icon}
+        <span>{label}</span>
+      </span>
+      {badge !== undefined && (
+        <span className="text-xs bg-white/20 px-1.5 py-0.5 rounded-full">{badge}</span>
+      )}
+    </button>
+  );
+}
+
+function SideSub({ children }: { children: React.ReactNode }) {
+  return <div className="bg-[#13171A] py-1.5">{children}</div>;
+}
+
+function SideSubLink({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full text-left pl-11 pr-4 py-1.5 text-[13px] transition-colors ${
+        active ? "text-white font-semibold" : "text-[#A7AAAD] hover:text-[#72AEE6]"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function SideHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="px-4 pt-6 pb-2 text-[10px] font-bold uppercase tracking-wider text-[#8C8F94]">
+      {children}
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  accent = "text-brand-dark",
+  action,
+  onAction,
+}: {
+  label: string;
+  value: number;
+  accent?: string;
+  action: string;
+  onAction: () => void;
+}) {
+  return (
+    <div className="p-5 rounded-xl bg-white border border-[#DCDCDE] shadow-sm">
+      <span className="text-xs font-semibold text-brand-muted uppercase block">{label}</span>
+      <div className={`font-heading font-bold text-3xl mt-1 ${accent}`}>{value}</div>
+      <button onClick={onAction} className="text-xs text-primary font-semibold hover:underline mt-2 inline-block">
+        {action}
+      </button>
+    </div>
+  );
+}
+
+function Shortcut({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left p-3 rounded-lg bg-brand-bgSoft hover:bg-brand-bgLight transition-colors text-xs font-semibold text-brand-dark flex items-center justify-between"
+    >
+      <span>{label}</span>
+      <span>→</span>
+    </button>
   );
 }

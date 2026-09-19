@@ -7,8 +7,11 @@ export interface IArticle extends Document {
   date: string;
   author: string;
   authorRole?: string;
+  authorId?: string;
   img: string;
+  imgAlt?: string;
   intro: string;
+  content?: string;
   quickSummary?: string;
   keyBenefits?: string[];
   sections: { heading: string; text: string }[];
@@ -16,7 +19,9 @@ export interface IArticle extends Document {
   safeSteps?: { step: number; title: string; desc: string }[];
   callout?: string;
   relatedSlugs: string[];
-  status: "published" | "draft";
+  status: "published" | "draft" | "scheduled";
+  scheduledAt?: string;
+  seo?: Record<string, unknown>;
   metaTitle?: string;
   metaDescription?: string;
   keywords?: string[];
@@ -32,8 +37,11 @@ const ArticleSchema: Schema = new Schema({
   date: { type: String, default: "" },
   author: { type: String, default: "CalmTouch Editorial Team" },
   authorRole: { type: String, default: "" },
-  img: { type: String, default: "/assets/images/article1.png" },
+  authorId: { type: String, default: "" },
+  img: { type: String, default: "" },
+  imgAlt: { type: String, default: "" },
   intro: { type: String, default: "" },
+  content: { type: String, default: "" },
   quickSummary: { type: String, default: "" },
   keyBenefits: [{ type: String }],
   sections: [
@@ -55,7 +63,9 @@ const ArticleSchema: Schema = new Schema({
   ],
   callout: { type: String, default: "" },
   relatedSlugs: [{ type: String }],
-  status: { type: String, enum: ["published", "draft"], default: "published" },
+  status: { type: String, enum: ["published", "draft", "scheduled"], default: "published" },
+  scheduledAt: { type: String, default: "" },
+  seo: { type: Schema.Types.Mixed, default: {} },
   metaTitle: { type: String, default: "" },
   metaDescription: { type: String, default: "" },
   keywords: [{ type: String }],

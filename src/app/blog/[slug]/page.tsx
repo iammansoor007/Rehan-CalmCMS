@@ -1,9 +1,26 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
-import { getArticleBySlug, getArticles } from "@/lib/cms/client";
+import {
+  getArticleBySlug,
+  getArticles,
+  getCategories,
+  getTemplateSettings,
+  isLive,
+} from "@/lib/cms/client";
+import { resolveRedirect } from "@/lib/cms/content";
+import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  articleJsonLd,
+  breadcrumbJsonLd,
+  buildMetadata,
+  getSeoContext,
+  toIsoDate,
+} from "@/lib/seo";
+import { getSession } from "@/lib/auth";
+import { getExcerpt } from "@/lib/excerpt";
 import { slugify } from "@/lib/slugify";
 import { ShareBar } from "@/components/blog/ShareBar";
 import {
@@ -14,6 +31,7 @@ import {
   ShieldCheck,
   ArrowLeft,
   ArrowRight,
+  Eye,
 } from "lucide-react";
 
 interface BlogPostPageProps {
@@ -24,6 +42,23 @@ interface BlogPostPageProps {
 
 export const dynamic = "force-dynamic";
 
+/** Logged-in admins can open drafts and scheduled posts to preview them. */
+async function loadArticle(slug: string) {
+  const session = await getSession();
+  return getArticleBySlug(slug, { includeAll: !!session });
+}
+
+function Thumb({ src, alt }: { src?: string; alt: string }) {
+  if (!src) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-primary/10 text-primary/50">
+        <Sparkles className="w-5 h-5" />
+      </div>
+    );
+  }
+  return <Image src={src} alt={alt} fill sizes="64px" className="object-cover" />;
+}
+
 export async function generateStaticParams() {
   const articles = await getArticles();
   return articles.map((article) => ({
@@ -32,83 +67,98 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
-  const article = await getArticleBySlug(params.slug);
-  if (!article) return { title: "Article Not Found" };
+  const [article, ctx] = await Promise.all([loadArticle(params.slug), getSeoContext()]);
+  if (!article) return { title: "Article Not Found", robots: { index: false, follow: false } };
 
-  const metaTitle = article.metaTitle || article.title;
-  const metaDescription = article.metaDescription || article.intro;
-  const ogImg = article.ogImage || article.img;
-  const canonical = article.canonicalUrl || `https://calmtouch.com/blog/${article.slug}`;
-
-  return {
-    title: metaTitle,
-    description: metaDescription,
-    keywords: article.keywords && article.keywords.length > 0 ? article.keywords : [article.category, "massage therapy", "wellness guide"],
-    alternates: {
-      canonical: canonical,
+  return buildMetadata(ctx, {
+    kind: "post",
+    path: `/blog/${article.slug}`,
+    title: article.title,
+    seo: article.seo,
+    description: getExcerpt(article),
+    image: article.img,
+    category: article.category,
+    keywords: article.keywords,
+    preview: !isLive(article),
+    article: {
+      publishedTime: toIsoDate(article.scheduledAt) || toIsoDate(article.date),
+      author: article.author,
+      section: article.category,
     },
-    openGraph: {
-      title: metaTitle,
-      description: metaDescription,
-      url: canonical,
-      siteName: "CalmTouch",
-      images: [{ url: ogImg, width: 1200, height: 630, alt: article.title }],
-      type: "article",
-      publishedTime: article.date,
-      authors: [article.author],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: metaTitle,
-      description: metaDescription,
-      images: [ogImg],
-    },
-  };
+  });
 }
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
-  const article = await getArticleBySlug(params.slug);
-  if (!article) notFound();
+  const article = await loadArticle(params.slug);
+  if (!article) {
+    // A post whose slug changed keeps working: send visitors (and Google) to the new address.
+    const moved = await resolveRedirect(`/blog/${params.slug}`);
+    if (moved) permanentRedirect(moved);
+    notFound();
+  }
+  // Reached through an alternative address (e.g. the title-derived slug): use the real URL.
+  if (article.slug !== params.slug) permanentRedirect(`/blog/${article.slug}`);
 
-  const articles = await getArticles();
+  const [articles, templates, seoCtx, categories] = await Promise.all([
+    getArticles(),
+    getTemplateSettings(),
+    getSeoContext(),
+    getCategories(),
+  ]);
+  const tpl = templates.post;
+  const wordCount = (
+    article.content ||
+    [article.intro, ...article.sections.map((sec) => sec.text)].join(" ")
+  )
+    .replace(/<[^>]*>/g, " ")
+    .split(/\s+/)
+    .filter(Boolean).length;
+  const readMinutes = Math.max(1, Math.ceil(wordCount / 200));
   const currentIndex = articles.findIndex((a) => a.slug === article.slug);
   const prevArticle =
     currentIndex > 0 ? articles[currentIndex - 1] : articles[articles.length - 1];
   const nextArticle =
     currentIndex < articles.length - 1 ? articles[currentIndex + 1] : articles[0];
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    headline: article.title,
-    description: article.intro,
-    image: [article.img],
-    datePublished: article.date,
-    author: {
-      "@type": "Person",
-      name: article.author,
-    },
-    publisher: {
-      "@type": "Organization",
-      name: "CalmTouch",
-      logo: {
-        "@type": "ImageObject",
-        url: "https://calmtouch.com/favicon.ico",
+  const categoryEntry = categories.find((c) => c.name === article.category);
+  const seo = article.seo || {};
+  const jsonLd = [
+    articleJsonLd(seoCtx, {
+      path: `/blog/${article.slug}`,
+      headline: article.title,
+      description: seo.description || getExcerpt(article),
+      image: seo.ogImage || article.img,
+      published: toIsoDate(article.scheduledAt) || toIsoDate(article.date),
+      author: article.author,
+      section: article.category,
+      keywords: article.keywords,
+      type: seo.schemaType || undefined,
+    }),
+    breadcrumbJsonLd(seoCtx, [
+      { name: "Home", path: "/" },
+      {
+        name: categoryEntry?.seo?.breadcrumbTitle || article.category,
+        path: `/category/${categoryEntry?.slug || slugify(article.category)}`,
       },
-    },
-    mainEntityOfPage: {
-      "@type": "WebPage",
-      "@id": `https://calmtouch.com/blog/${article.slug}`,
-    },
-  };
+      { name: seo.breadcrumbTitle || article.title, path: `/blog/${article.slug}` },
+    ]),
+  ];
 
   return (
     <article className="py-12 bg-brand-bgSoft/30 min-h-screen">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {!isLive(article) && (
+          <div className="mb-6 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
+            <Eye className="w-4 h-4 flex-shrink-0" />
+            <span>
+              Preview only — this post is{" "}
+              {article.status === "scheduled" ? "scheduled and not live yet" : "a draft"}. Visitors
+              cannot see it.
+            </span>
+          </div>
+        )}
+
         {/* Breadcrumb Navigation */}
         <nav className="flex items-center gap-2 text-xs text-brand-muted mb-8 overflow-x-auto whitespace-nowrap">
           <Link href="/" className="hover:text-primary transition-colors">
@@ -152,22 +202,28 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               <Calendar className="w-4 h-4" />
               <span>{article.date}</span>
             </div>
-            <span>•</span>
-            <span>5 min read</span>
+            {tpl.showReadingTime && (
+              <>
+                <span>•</span>
+                <span>{readMinutes} min read</span>
+              </>
+            )}
           </div>
         </header>
 
         {/* Featured Image */}
-        <div className="relative aspect-[16/9] rounded-3xl overflow-hidden shadow-card border border-brand-borderLight mb-10 bg-brand-bgLight">
-          <Image
-            src={article.img}
-            alt={article.title}
-            fill
-            priority
-            sizes="(max-width: 896px) 100vw, 896px"
-            className="object-cover"
-          />
-        </div>
+        {article.img && (
+          <div className="relative aspect-[16/9] rounded-3xl overflow-hidden shadow-card border border-brand-borderLight mb-10 bg-brand-bgLight">
+            <Image
+              src={article.img}
+              alt={article.imgAlt || article.title}
+              fill
+              priority
+              sizes="(max-width: 896px) 100vw, 896px"
+              className="object-cover"
+            />
+          </div>
+        )}
 
         {/* Quick Summary Callout Box */}
         {article.quickSummary && (
@@ -182,6 +238,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           </div>
         )}
 
+        {article.content ? (
+          <div
+            className="cms-content mb-12"
+            dangerouslySetInnerHTML={{ __html: article.content }}
+          />
+        ) : (
+          <>
         {/* Article Intro & Key Benefits */}
         <div className="space-y-6 text-base text-brand-dark leading-relaxed mb-10">
           <p className="text-lg font-medium text-brand-dark/90 leading-relaxed">
@@ -220,6 +283,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             </section>
           ))}
         </div>
+
+          </>
+        )}
 
         {/* Data Table */}
         {article.dataTable && (
@@ -296,46 +362,44 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         )}
 
         {/* In-Article CTA Banner */}
-        <div className="my-12 p-8 rounded-3xl bg-brand-bgSoft border border-brand-borderLight flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="space-y-1 text-center sm:text-left">
-            <h3 className="font-heading font-bold text-xl text-brand-dark">
-              Stay Restored & Comfortable
-            </h3>
-            <p className="text-xs sm:text-sm text-brand-muted">
-              Explore our complete library of practical wellness and body care guides.
-            </p>
+        {tpl.showCta && (
+          <div className="my-12 p-8 rounded-3xl bg-brand-bgSoft border border-brand-borderLight flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="space-y-1 text-center sm:text-left">
+              <h3 className="font-heading font-bold text-xl text-brand-dark">{tpl.ctaTitle}</h3>
+              <p className="text-xs sm:text-sm text-brand-muted">{tpl.ctaText}</p>
+            </div>
+            {tpl.ctaButtonText && tpl.ctaButtonHref && (
+              <Link
+                href={tpl.ctaButtonHref}
+                className="px-6 py-3 rounded-full bg-primary text-white text-xs sm:text-sm font-semibold hover:bg-primary-dark shadow-sm transition-colors whitespace-nowrap"
+              >
+                {tpl.ctaButtonText}
+              </Link>
+            )}
           </div>
-          <Link
-            href="/category/all"
-            className="px-6 py-3 rounded-full bg-primary text-white text-xs sm:text-sm font-semibold hover:bg-primary-dark shadow-sm transition-colors whitespace-nowrap"
-          >
-            Browse All Topics
-          </Link>
-        </div>
+        )}
 
         {/* Social Sharing Bar */}
-        <ShareBar title={article.title} />
+        {tpl.showShare && <ShareBar title={article.title} />}
 
         {/* Author Bio Card */}
-        <div className="my-10 p-6 sm:p-8 rounded-3xl bg-white border border-brand-borderLight flex items-start gap-5">
-          <div className="w-14 h-14 rounded-full bg-primary-light text-primary font-bold text-xl flex items-center justify-center flex-shrink-0">
-            {article.author.charAt(0)}
+        {tpl.showAuthorBox && (
+          <div className="my-10 p-6 sm:p-8 rounded-3xl bg-white border border-brand-borderLight flex items-start gap-5">
+            <div className="w-14 h-14 rounded-full bg-primary-light text-primary font-bold text-xl flex items-center justify-center flex-shrink-0">
+              {article.author.charAt(0)}
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-wider text-primary block">
+                {tpl.authorBoxLabel}
+              </span>
+              <h4 className="font-heading font-bold text-lg text-brand-dark">{article.author}</h4>
+              <p className="text-xs sm:text-sm text-brand-muted leading-relaxed">{tpl.authorBio}</p>
+            </div>
           </div>
-          <div className="space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-wider text-primary block">
-              About the Author
-            </span>
-            <h4 className="font-heading font-bold text-lg text-brand-dark">
-              {article.author}
-            </h4>
-            <p className="text-xs sm:text-sm text-brand-muted leading-relaxed">
-              Certified wellness advisor and massage practitioner dedicated to bringing practical,
-              evidence-aligned body recovery techniques to daily living.
-            </p>
-          </div>
-        </div>
+        )}
 
         {/* Previous / Next Article Cards */}
+        {tpl.showPrevNext && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-10 pt-6 border-t border-brand-borderLight">
           {prevArticle && (
             <Link
@@ -343,13 +407,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               className="p-4 rounded-2xl bg-white border border-brand-borderLight hover:border-primary/40 hover:shadow-sm transition-all group flex items-center gap-3"
             >
               <div className="relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-brand-bgLight">
-                <Image
-                  src={prevArticle.img}
-                  alt={prevArticle.title}
-                  fill
-                  sizes="64px"
-                  className="object-cover"
-                />
+                <Thumb src={prevArticle.img} alt={prevArticle.title} />
               </div>
               <div className="min-w-0 flex-1">
                 <span className="text-[10px] font-bold text-brand-muted flex items-center gap-1 group-hover:text-primary transition-colors">
@@ -376,17 +434,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 </h5>
               </div>
               <div className="relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-brand-bgLight">
-                <Image
-                  src={nextArticle.img}
-                  alt={nextArticle.title}
-                  fill
-                  sizes="64px"
-                  className="object-cover"
-                />
+                <Thumb src={nextArticle.img} alt={nextArticle.title} />
               </div>
             </Link>
           )}
         </div>
+        )}
       </div>
     </article>
   );

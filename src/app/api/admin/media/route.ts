@@ -1,48 +1,47 @@
 import { NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
-import { connectToDatabase } from "@/lib/mongodb";
-import { MediaModel } from "@/models/Media";
+import { authorize } from "@/lib/auth";
+import { deleteMedia, listMedia, updateMediaDetails } from "@/lib/cms/media";
+import { errorResponse } from "@/lib/cms/errors";
 
 export async function GET() {
+  const auth = await authorize();
+  if (auth.error) return auth.error;
+
   try {
-    const db = await connectToDatabase();
-    if (db) {
-      const records = await MediaModel.find().sort({ createdAt: -1 }).lean();
-      if (records.length > 0) {
-        return NextResponse.json(records);
-      }
-    }
-
-    // Fallback: read filesystem public/uploads and public/assets/images
-    const mediaList: { filename: string; url: string; createdAt: Date }[] = [];
-
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
-    try {
-      const uploadFiles = await fs.readdir(uploadsDir);
-      for (const f of uploadFiles) {
-        mediaList.push({
-          filename: f,
-          url: `/uploads/${f}`,
-          createdAt: new Date(),
-        });
-      }
-    } catch {}
-
-    const imagesDir = path.join(process.cwd(), "public", "assets", "images");
-    try {
-      const imageFiles = await fs.readdir(imagesDir);
-      for (const f of imageFiles) {
-        mediaList.push({
-          filename: f,
-          url: `/assets/images/${f}`,
-          createdAt: new Date(),
-        });
-      }
-    } catch {}
-
-    return NextResponse.json(mediaList);
+    return NextResponse.json(await listMedia());
   } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch media" }, { status: 500 });
+    return errorResponse(error, "Failed to fetch media");
+  }
+}
+
+/** Saves alt text, title, caption and description for one image. */
+export async function PUT(req: Request) {
+  const auth = await authorize("manage_media");
+  if (auth.error) return auth.error;
+
+  try {
+    const { url, alt, title, caption, description } = await req.json();
+    if (!url) return NextResponse.json({ error: "Media URL is required" }, { status: 400 });
+    const item = await updateMediaDetails(String(url), { alt, title, caption, description });
+    return NextResponse.json(item);
+  } catch (error) {
+    return errorResponse(error, "Failed to update media");
+  }
+}
+
+/** Permanently deletes one or more images (body: { urls: string[] }). */
+export async function DELETE(req: Request) {
+  const auth = await authorize("manage_media");
+  if (auth.error) return auth.error;
+
+  try {
+    const { urls } = await req.json();
+    if (!Array.isArray(urls) || urls.length === 0) {
+      return NextResponse.json({ error: "No files selected" }, { status: 400 });
+    }
+    const removed = await deleteMedia(urls.map(String));
+    return NextResponse.json({ success: true, removed });
+  } catch (error) {
+    return errorResponse(error, "Failed to delete media");
   }
 }

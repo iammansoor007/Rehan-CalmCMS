@@ -42,7 +42,7 @@ export function NewsletterSection({ newsletter }: NewsletterSectionProps) {
   };
 
   return (
-    <section className="py-20 bg-brand-bgLight/80">
+    <section id="newsletter" className="py-20 bg-brand-bgLight/80">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div className="p-8 sm:p-12 lg:p-16 rounded-3xl bg-white border border-brand-border shadow-card">
           <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-4">

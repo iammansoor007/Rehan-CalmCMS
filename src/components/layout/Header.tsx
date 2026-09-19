@@ -69,53 +69,68 @@ export function Header({ siteConfig, navigation, articles }: HeaderProps) {
                 pathname === "/" ? "text-primary font-semibold" : "text-brand-dark hover:text-primary"
               }`}
             >
-              Home
+              {navigation.homeLabel}
             </Link>
 
             {/* Categories Dropdown */}
+            {navigation.categoriesMenu.visible && (
             <div className="relative group py-2">
               <button className="flex items-center gap-1.5 text-sm font-medium text-brand-dark group-hover:text-primary transition-colors focus:outline-none">
-                <span>Categories</span>
+                <span>{navigation.categoriesMenu.label}</span>
                 <ChevronDown className="w-4 h-4 transition-transform duration-200 group-hover:rotate-180 text-brand-muted" />
               </button>
 
               <div className="absolute top-full left-0 w-60 bg-white border border-brand-border rounded-2xl shadow-floating py-2 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 z-50">
-                {navigation.categoryDropdown.map((cat) => (
+                {navigation.categoriesMenu.items.map((cat) => (
                   <Link
                     key={cat.slug}
                     href={cat.href}
                     className="block px-4 py-2 text-sm text-brand-dark hover:bg-brand-bgLight/80 hover:text-primary transition-colors"
+                    style={cat.depth ? { paddingLeft: 16 + cat.depth * 16 } : undefined}
                   >
+                    {cat.depth ? "– " : ""}
                     {cat.label}
                   </Link>
                 ))}
               </div>
             </div>
+            )}
 
-            {navigation.mainNav
-              .filter((item) => item.label !== "Home")
-              .map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`text-sm font-medium transition-colors ${
-                    pathname === item.href ? "text-primary font-semibold" : "text-brand-dark hover:text-primary"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
+            {navigation.links.map((item) => (
+              <Link
+                key={`${item.href}-${item.label}`}
+                href={item.href}
+                target={item.newTab ? "_blank" : undefined}
+                rel={item.newTab ? "noopener noreferrer" : undefined}
+                className={`text-sm font-medium transition-colors ${
+                  pathname === item.href ? "text-primary font-semibold" : "text-brand-dark hover:text-primary"
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
           </nav>
 
           {/* Actions: Search & Mobile Menu Button */}
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsSearchOpen(true)}
-              aria-label="Search articles"
-              className="p-2.5 rounded-full text-brand-dark hover:text-primary hover:bg-brand-bgLight transition-colors"
-            >
-              <Search className="w-5 h-5" />
-            </button>
+            {navigation.showSearch && (
+              <button
+                onClick={() => setIsSearchOpen(true)}
+                aria-label="Search articles"
+                className="p-2.5 rounded-full text-brand-dark hover:text-primary hover:bg-brand-bgLight transition-colors"
+              >
+                <Search className="w-5 h-5" />
+              </button>
+            )}
+
+            {navigation.cta.visible && navigation.cta.text && navigation.cta.href && (
+              <Link
+                href={navigation.cta.href}
+                className="hidden md:inline-flex px-5 py-2.5 rounded-full bg-primary text-white text-sm font-semibold hover:bg-primary-dark shadow-sm transition-colors"
+              >
+                {navigation.cta.text}
+              </Link>
+            )}
 
             <button
               onClick={() => setIsDrawerOpen(true)}

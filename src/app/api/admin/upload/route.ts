@@ -1,51 +1,60 @@
 import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
-import { connectToDatabase } from "@/lib/mongodb";
-import { MediaModel } from "@/models/Media";
+import { authorize } from "@/lib/auth";
+import { can } from "@/lib/permissions";
+import { ALLOWED_UPLOAD_TYPES, mimeFromName, recordUpload } from "@/lib/cms/media";
+import { errorResponse } from "@/lib/cms/errors";
+
+const MAX_BYTES = 10 * 1024 * 1024;
 
 export async function POST(req: Request) {
+  const auth = await authorize("upload_files");
+  if (auth.error) return auth.error;
+
   try {
     const formData = await req.formData();
-    const file = formData.get("file") as File;
+    const file = formData.get("file") as File | null;
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    // Trust the extension over the client-supplied type; SVG can carry scripts,
+    // so it is limited to roles that manage the media library.
+    const mimetype = mimeFromName(file.name);
+    const isSvg = mimetype === "image/svg+xml";
+    const allowed = ALLOWED_UPLOAD_TYPES.includes(mimetype) || (isSvg && can(auth.session.role, "manage_media"));
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Unsupported file type. Upload a PNG, JPG, GIF, WebP or AVIF image." },
+        { status: 400 }
+      );
+    }
+    if (file.size > MAX_BYTES) {
+      return NextResponse.json({ error: "Image is too large (10 MB maximum)." }, { status: 400 });
+    }
 
-    // Ensure uploads directory exists
+    const buffer = Buffer.from(await file.arrayBuffer());
+
     const uploadsDir = path.join(process.cwd(), "public", "uploads");
     await fs.mkdir(uploadsDir, { recursive: true });
 
-    // Clean filename
     const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
     const uniqueName = `${Date.now()}_${originalName}`;
-    const filePath = path.join(uploadsDir, uniqueName);
-
-    await fs.writeFile(filePath, buffer);
+    await fs.writeFile(path.join(uploadsDir, uniqueName), buffer);
     const fileUrl = `/uploads/${uniqueName}`;
 
-    // Optionally save to MongoDB Media library
-    try {
-      const db = await connectToDatabase();
-      if (db) {
-        await MediaModel.create({
-          filename: originalName,
-          url: fileUrl,
-          size: file.size,
-          mimetype: file.type,
-        });
-      }
-    } catch (e) {
-      console.warn("Could not save media record to MongoDB:", e);
-    }
+    await recordUpload({
+      filename: originalName,
+      url: fileUrl,
+      size: file.size,
+      mimetype,
+      createdAt: new Date().toISOString(),
+    });
 
     return NextResponse.json({ url: fileUrl, filename: originalName });
   } catch (error) {
-    console.error("Upload error:", error);
-    return NextResponse.json({ error: "File upload failed" }, { status: 500 });
+    return errorResponse(error, "File upload failed");
   }
 }

@@ -12,6 +12,8 @@ export interface ISiteConfig extends Document {
     linkedin?: string;
     instagram?: string;
   };
+  /** Admin-edited overrides for the homepage copy (hero, banners, …). */
+  homepage?: Record<string, unknown> | null;
 }
 
 const SiteConfigSchema: Schema = new Schema({
@@ -26,6 +28,7 @@ const SiteConfigSchema: Schema = new Schema({
     linkedin: { type: String, default: "" },
     instagram: { type: String, default: "" },
   },
+  homepage: { type: Schema.Types.Mixed, default: null },
 });
 
 export const SiteConfigModel: Model<ISiteConfig> =
