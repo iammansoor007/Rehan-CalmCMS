@@ -1,81 +1,87 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Sparkles } from "lucide-react";
 import { Article, Category, SidebarSettings } from "@/types/cms";
 import { pickCategories } from "@/lib/categoryTree";
-import { Calendar, Tag, Sparkles } from "lucide-react";
+import { slugify } from "@/lib/slugify";
+import { SidebarNewsletter, SidebarSearch } from "./SidebarWidgets";
 
 interface SidebarProps {
   recentArticles: Article[];
   categories: Category[];
   settings: SidebarSettings;
+  /** Highlights this category in the list. */
+  activeCategorySlug?: string;
 }
 
-export function Sidebar({ recentArticles, categories, settings }: SidebarProps) {
+const widget = "rounded-2xl bg-brand-bgSoft border border-brand-border p-6";
+const widgetTitle =
+  "font-heading font-bold text-[1.12rem] text-brand-dark mb-4 pb-2.5 border-b-2 border-primary-light";
+
+/** Right-hand column used on blog posts and the homepage. Every widget is set under Appearance → Sidebar. */
+export function Sidebar({ recentArticles, categories, settings, activeCategorySlug }: SidebarProps) {
   const topics = pickCategories(categories, settings.topicCategorySlugs);
+  const countFor = (cat: Category) =>
+    recentArticles.filter((a) => slugify(a.category) === cat.slug || a.category === cat.name).length;
 
   return (
-    <aside className="space-y-8">
-      {/* Popular Topics / Categories Widget */}
-      {settings.showTopics && topics.length > 0 && (
-        <div className="bg-brand-bgSoft p-6 rounded-2xl border border-brand-borderLight">
-          <h4 className="font-heading font-semibold text-base text-brand-dark mb-4 flex items-center gap-2">
-            <Tag className="w-4 h-4 text-primary" />
-            {settings.topicsTitle}
-          </h4>
-          <div className="flex flex-wrap gap-2">
-            {topics.map((cat) => (
-              <Link
-                key={cat.slug}
-                href={`/category/${cat.slug}`}
-                className="px-3 py-1.5 bg-white rounded-full text-xs font-medium text-brand-dark border border-brand-border hover:border-primary hover:text-primary transition-colors"
-              >
-                {cat.name}
-              </Link>
-            ))}
-          </div>
+    <aside className="flex flex-col gap-7">
+      {settings.showSearch && (
+        <div className={widget}>
+          <SidebarSearch placeholder={settings.searchPlaceholder} />
         </div>
       )}
 
-      {/* Recent Guides Widget */}
+      {settings.showTopics && topics.length > 0 && (
+        <div className={widget}>
+          <h3 className={widgetTitle}>{settings.topicsTitle}</h3>
+          <ul>
+            {topics.map((cat) => {
+              const active = cat.slug === activeCategorySlug;
+              return (
+                <li key={cat.slug} className="border-b border-brand-borderLight last:border-b-0">
+                  <Link
+                    href={`/category/${cat.slug}`}
+                    className={`flex items-center justify-between py-2.5 text-[0.92rem] transition-all hover:text-primary hover:translate-x-1 ${
+                      active
+                        ? "text-primary font-bold border-l-[3px] border-primary pl-2.5"
+                        : "text-brand-dark"
+                    }`}
+                    style={cat.depth ? { paddingLeft: 12 + cat.depth * 12 } : undefined}
+                  >
+                    <span>{cat.name}</span>
+                    {settings.showTopicCounts && (
+                      <span className="text-[0.82rem] text-brand-muted font-medium">({countFor(cat)})</span>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
       {settings.showPopular && recentArticles.length > 0 && (
-        <div className="bg-brand-bgSoft p-6 rounded-2xl border border-brand-borderLight">
-          <h4 className="font-heading font-semibold text-base text-brand-dark mb-4">
-            {settings.popularTitle}
-          </h4>
-          <div className="space-y-4">
+        <div className={widget}>
+          <h3 className={widgetTitle}>{settings.popularTitle}</h3>
+          <div className="flex flex-col gap-4">
             {recentArticles.slice(0, settings.popularCount).map((art) => (
-              <Link
-                key={art.slug}
-                href={`/blog/${art.slug}`}
-                className="group flex items-center gap-3.5"
-              >
-                <div className="relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-brand-bgLight">
+              <Link key={art.slug} href={`/blog/${art.slug}`} className="group flex items-center gap-3">
+                <div className="relative w-[60px] h-[60px] rounded-[10px] overflow-hidden flex-shrink-0 bg-brand-bgLight">
                   {art.img ? (
-                    <Image
-                      src={art.img}
-                      alt={art.imgAlt || art.title}
-                      fill
-                      sizes="64px"
-                      className="object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
+                    <Image src={art.img} alt={art.imgAlt || art.title} fill sizes="60px" className="object-cover" />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center bg-primary/10 text-primary/50">
                       <Sparkles className="w-5 h-5" />
                     </div>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-[11px] font-semibold text-primary block truncate">
-                    {art.category}
-                  </span>
-                  <h5 className="text-xs font-semibold text-brand-dark group-hover:text-primary transition-colors line-clamp-2 leading-snug">
+                <div className="min-w-0">
+                  <h4 className="text-[0.88rem] font-semibold text-brand-dark leading-[1.35] group-hover:text-primary transition-colors line-clamp-2">
                     {art.title}
-                  </h5>
-                  <span className="text-[11px] text-brand-muted flex items-center gap-1 mt-0.5">
-                    <Calendar className="w-3 h-3" />
-                    {art.date}
-                  </span>
+                  </h4>
+                  <span className="block mt-1 text-[0.78rem] text-brand-muted">{art.date}</span>
                 </div>
               </Link>
             ))}
@@ -83,23 +89,45 @@ export function Sidebar({ recentArticles, categories, settings }: SidebarProps) 
         </div>
       )}
 
-      {/* Mini Advice Card */}
+      {settings.showNewsletter && (
+        <SidebarNewsletter
+          title={settings.newsletterTitle}
+          text={settings.newsletterText}
+          buttonText={settings.newsletterButtonText}
+        />
+      )}
+
+      {settings.showGuide && (
+        <div className="rounded-2xl bg-brand-accentBeigeLight border border-brand-accentBeige p-6">
+          {settings.guideBadge && (
+            <span className="inline-block px-2.5 py-1 rounded-full bg-primary text-white text-[0.68rem] font-bold tracking-[0.08em] mb-2.5">
+              {settings.guideBadge}
+            </span>
+          )}
+          <h4 className="font-heading font-bold text-[1.1rem] text-brand-dark mb-1.5">{settings.guideTitle}</h4>
+          <p className="text-[0.86rem] text-brand-muted mb-3 leading-relaxed">{settings.guideText}</p>
+          {settings.guideImage && (
+            <div className="relative w-full h-40 my-2">
+              <Image src={settings.guideImage} alt={settings.guideTitle} fill sizes="340px" className="object-contain" />
+            </div>
+          )}
+          {settings.guideButtonText && settings.guideButtonHref && (
+            <Link
+              href={settings.guideButtonHref}
+              className="mt-3.5 block text-center w-full py-3 rounded-full bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition-all hover:-translate-y-0.5 shadow-[0_4px_14px_rgba(78,110,88,0.25)]"
+            >
+              {settings.guideButtonText}
+            </Link>
+          )}
+        </div>
+      )}
+
       {settings.showCard && (
-        <div className="bg-primary/10 p-6 rounded-2xl border border-primary/20 text-center">
-          <span className="inline-block p-2 rounded-full bg-primary text-white mb-3">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-            </svg>
-          </span>
-          <h5 className="font-heading font-semibold text-sm text-brand-dark mb-1">
-            {settings.cardTitle}
-          </h5>
+        <div className="rounded-2xl bg-primary/10 border border-primary/20 p-6 text-center">
+          <h5 className="font-heading font-semibold text-sm text-brand-dark mb-1">{settings.cardTitle}</h5>
           <p className="text-xs text-brand-muted mb-4">{settings.cardText}</p>
           {settings.cardLinkText && settings.cardLinkHref && (
-            <Link
-              href={settings.cardLinkHref}
-              className="inline-block text-xs font-semibold text-primary hover:underline"
-            >
+            <Link href={settings.cardLinkHref} className="inline-block text-xs font-semibold text-primary hover:underline">
               {settings.cardLinkText}
             </Link>
           )}

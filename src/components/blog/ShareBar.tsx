@@ -2,53 +2,38 @@
 
 import React from "react";
 import { useToast } from "@/components/layout/Toast";
-import { Share2, Facebook, Twitter, Linkedin, Mail } from "lucide-react";
+import { Facebook, Twitter, Linkedin, Mail } from "lucide-react";
 
+/** "Share this article" strip with round social buttons. */
 export function ShareBar({ title }: { title: string }) {
   const { showToast } = useToast();
 
-  const handleShare = (platform: string) => {
-    if (typeof window !== "undefined") {
-      navigator.clipboard?.writeText(window.location.href);
-      showToast(`Link copied to clipboard for ${platform}!`);
-    }
+  const share = (platform: string) => {
+    if (typeof window === "undefined") return;
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(title);
+    const targets: Record<string, string> = {
+      Facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
+      Twitter: `https://twitter.com/intent/tweet?url=${url}&text=${text}`,
+      LinkedIn: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
+      Email: `mailto:?subject=${text}&body=${url}`,
+    };
+    navigator.clipboard?.writeText(window.location.href).catch(() => {});
+    showToast(`Link copied — opening ${platform}…`);
+    window.open(targets[platform], "_blank", "noopener,noreferrer");
   };
 
+  const btn =
+    "w-9 h-9 rounded-full bg-brand-bgSoft border border-brand-border text-brand-muted flex items-center justify-center hover:bg-primary hover:text-white hover:border-primary hover:-translate-y-0.5 transition-all";
+
   return (
-    <div className="py-6 border-y border-brand-borderLight flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-      <div className="flex items-center gap-2 text-sm font-semibold text-brand-dark">
-        <Share2 className="w-4 h-4 text-primary" />
-        <span>Share this guide:</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => handleShare("Facebook")}
-          title="Share on Facebook"
-          className="p-2.5 rounded-full bg-brand-bgSoft hover:bg-primary hover:text-white text-brand-muted transition-colors"
-        >
-          <Facebook className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => handleShare("Twitter / X")}
-          title="Share on Twitter"
-          className="p-2.5 rounded-full bg-brand-bgSoft hover:bg-primary hover:text-white text-brand-muted transition-colors"
-        >
-          <Twitter className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => handleShare("LinkedIn")}
-          title="Share on LinkedIn"
-          className="p-2.5 rounded-full bg-brand-bgSoft hover:bg-primary hover:text-white text-brand-muted transition-colors"
-        >
-          <Linkedin className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => handleShare("Email")}
-          title="Share via Email"
-          className="p-2.5 rounded-full bg-brand-bgSoft hover:bg-primary hover:text-white text-brand-muted transition-colors"
-        >
-          <Mail className="w-4 h-4" />
-        </button>
+    <div className="flex items-center justify-between gap-4 py-4 my-9 border-y border-brand-borderLight">
+      <span className="font-semibold text-[0.95rem] text-brand-dark">Share this article</span>
+      <div className="flex gap-2.5">
+        <button onClick={() => share("Facebook")} title="Share on Facebook" className={btn}><Facebook className="w-[15px] h-[15px]" /></button>
+        <button onClick={() => share("Twitter")} title="Share on Twitter" className={btn}><Twitter className="w-[15px] h-[15px]" /></button>
+        <button onClick={() => share("LinkedIn")} title="Share on LinkedIn" className={btn}><Linkedin className="w-[15px] h-[15px]" /></button>
+        <button onClick={() => share("Email")} title="Share via Email" className={btn}><Mail className="w-[15px] h-[15px]" /></button>
       </div>
     </div>
   );

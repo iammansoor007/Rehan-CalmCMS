@@ -47,11 +47,15 @@ export function ContactForm({ subjects, buttonText, recipientEmail, successMessa
     setMessage("");
   };
 
+  const fieldCls =
+    "w-full px-4 py-3 rounded-lg border border-brand-border bg-brand-bgSoft text-[0.95rem] text-brand-dark transition-all focus:outline-none focus:border-primary focus:bg-white focus:ring-[3px] focus:ring-primary/15";
+  const labelCls = "block text-[0.88rem] font-semibold text-brand-dark mb-2";
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div>
-          <label className="block text-xs font-semibold text-brand-dark mb-1.5">
+          <label className={labelCls}>
             Your Full Name *
           </label>
           <input
@@ -60,11 +64,11 @@ export function ContactForm({ subjects, buttonText, recipientEmail, successMessa
             placeholder="Sarah Johnson"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-brand-border bg-white text-sm text-brand-dark focus:outline-none focus:border-primary transition-colors"
+            className={fieldCls}
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-brand-dark mb-1.5">
+          <label className={labelCls}>
             Email Address *
           </label>
           <input
@@ -73,19 +77,19 @@ export function ContactForm({ subjects, buttonText, recipientEmail, successMessa
             placeholder="sarah@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-brand-border bg-white text-sm text-brand-dark focus:outline-none focus:border-primary transition-colors"
+            className={fieldCls}
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-brand-dark mb-1.5">
+        <label className={labelCls}>
           Subject Topic
         </label>
         <select
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border border-brand-border bg-white text-sm text-brand-dark focus:outline-none focus:border-primary transition-colors"
+          className={fieldCls}
         >
           {subjects.map((sub) => (
             <option key={sub} value={sub}>
@@ -96,7 +100,7 @@ export function ContactForm({ subjects, buttonText, recipientEmail, successMessa
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-brand-dark mb-1.5">
+        <label className={labelCls}>
           Your Message *
         </label>
         <textarea
@@ -105,16 +109,16 @@ export function ContactForm({ subjects, buttonText, recipientEmail, successMessa
           placeholder="How can we help you or what topic would you like us to cover?"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border border-brand-border bg-white text-sm text-brand-dark focus:outline-none focus:border-primary transition-colors resize-y"
+          className={`${fieldCls} resize-y`}
         />
       </div>
 
       <button
         type="submit"
-        className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-primary text-white text-sm font-semibold hover:bg-primary-dark shadow-sm transition-all duration-200 inline-flex items-center justify-center gap-2"
+        className="w-full mt-2 px-6 py-3.5 rounded-full bg-primary text-white text-base font-semibold hover:bg-primary-dark hover:-translate-y-0.5 transition-all shadow-[0_4px_14px_rgba(78,110,88,0.25)] inline-flex items-center justify-center gap-2"
       >
+        <Send className="w-[18px] h-[18px]" />
         <span>{buttonText}</span>
-        <Send className="w-4 h-4" />
       </button>
     </form>
   );

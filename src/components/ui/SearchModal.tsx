@@ -11,10 +11,16 @@ interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
   articles: Article[];
+  /** Text to start with (from the sidebar search box). */
+  initialQuery?: string;
 }
 
-export function SearchModal({ isOpen, onClose, articles }: SearchModalProps) {
+export function SearchModal({ isOpen, onClose, articles, initialQuery = "" }: SearchModalProps) {
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    if (isOpen) setQuery(initialQuery);
+  }, [isOpen, initialQuery]);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 

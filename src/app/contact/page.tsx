@@ -5,9 +5,8 @@ import { getContactData, getSiteConfig } from "@/lib/cms/client";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { breadcrumbJsonLd, buildMetadata, getSeoContext, webPageJsonLd } from "@/lib/seo";
 import { ContactForm } from "@/components/contact/ContactForm";
-import { FaqAccordion } from "@/components/contact/FaqAccordion";
 import { DynamicIcon } from "@/lib/icons";
-import { Sparkles } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
 
 export const dynamic = "force-dynamic";
 
@@ -25,10 +24,12 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ContactPage() {
   const [contact, siteConfig, ctx] = await Promise.all([getContactData(), getSiteConfig(), getSeoContext()]);
   const showForm = contact.form.visible;
+  const showCards = contact.infoCards.visible && contact.infoCards.items.length > 0;
   const showFaq = contact.faq.visible && contact.faq.items.length > 0;
+  const showRight = showCards || showFaq;
 
   return (
-    <div className="py-16 bg-brand-bgSoft/30 min-h-screen">
+    <div className="bg-white pt-10 pb-24 min-h-[80vh]">
       <JsonLd
         data={[
           webPageJsonLd(ctx, {
@@ -43,103 +44,94 @@ export default async function ContactPage() {
           ]),
         ]}
       />
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-        {/* Header */}
-        <div className="text-center max-w-2xl mx-auto space-y-3">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "Contact Us" }]} />
+
+        {/* Hero banner */}
+        <div className="rounded-2xl bg-brand-bgSoft border border-brand-border px-6 py-8 sm:px-10 sm:py-10 mb-9">
           {contact.badge && (
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{contact.badge}</span>
-            </div>
+            <span className="inline-block px-4 py-1.5 rounded-full bg-primary-light text-primary text-[0.78rem] font-bold uppercase tracking-[0.12em] mb-3.5">
+              {contact.badge}
+            </span>
           )}
-          <h1 className="font-heading font-bold text-3xl sm:text-4xl lg:text-5xl text-brand-dark tracking-tight leading-[1.2]">
+          <h1 className="font-heading font-bold text-3xl sm:text-4xl lg:text-[2.5rem] text-brand-dark leading-tight mt-2 mb-3">
             {contact.title}
           </h1>
           {contact.subtitle && (
-            <p className="text-base text-brand-muted leading-relaxed">{contact.subtitle}</p>
+            <p className="text-[1.08rem] text-brand-muted leading-relaxed max-w-[680px]">{contact.subtitle}</p>
           )}
         </div>
 
-        {/* Contact Info Cards */}
-        {contact.infoCards.visible && contact.infoCards.items.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {contact.infoCards.items.map((info, i) => {
-              const body = (
-                <>
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                    <DynamicIcon name={info.iconName} fallback="Mail" className="w-5 h-5 text-primary" />
+        <div className={`grid grid-cols-1 gap-9 ${showForm && showRight ? "lg:grid-cols-[1.4fr_1fr]" : ""}`}>
+          {/* Form */}
+          {showForm && (
+            <div className="rounded-2xl bg-white border border-brand-border p-6 sm:p-9 shadow-soft">
+              <h2 className="font-heading font-bold text-[1.5rem] text-brand-dark mb-1.5">{contact.form.title}</h2>
+              {contact.form.subtitle && <p className="text-[0.92rem] text-brand-muted mb-6">{contact.form.subtitle}</p>}
+              <ContactForm
+                subjects={contact.form.subjects}
+                buttonText={contact.form.buttonText}
+                recipientEmail={contact.form.recipientEmail || siteConfig.contactEmail}
+                successMessage={contact.form.successMessage}
+              />
+            </div>
+          )}
+
+          {/* Info cards + FAQ */}
+          {showRight && (
+            <div className="flex flex-col gap-5">
+              {showCards &&
+                contact.infoCards.items.map((info, i) => {
+                  const body = (
+                    <>
+                      <div className="w-11 h-11 rounded-full bg-primary-light text-primary-dark flex items-center justify-center flex-shrink-0">
+                        <DynamicIcon name={info.iconName} fallback="Mail" className="w-[22px] h-[22px]" />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="font-heading font-bold text-[1.05rem] text-brand-dark mb-1">{info.title}</h4>
+                        <p className="text-[0.92rem] text-brand-muted leading-[1.5] break-words">{info.detail}</p>
+                        {info.subtext && (
+                          <span className="block text-[0.78rem] font-semibold text-primary mt-1">{info.subtext}</span>
+                        )}
+                      </div>
+                    </>
+                  );
+                  const cls = "flex gap-4 rounded-2xl bg-brand-bgSoft border border-brand-border p-6";
+                  return info.href ? (
+                    <Link key={`${info.title}-${i}`} href={info.href} className={`${cls} hover:border-primary transition-colors`}>
+                      {body}
+                    </Link>
+                  ) : (
+                    <div key={`${info.title}-${i}`} className={cls}>
+                      {body}
+                    </div>
+                  );
+                })}
+
+              {showFaq && (
+                <div className="rounded-2xl bg-white border border-brand-border p-6">
+                  <h4 className="font-heading font-bold text-[1.1rem] text-brand-dark mb-3.5">{contact.faq.title}</h4>
+                  {contact.faq.subtitle && <p className="text-[0.88rem] text-brand-muted mb-3">{contact.faq.subtitle}</p>}
+                  <div>
+                    {contact.faq.items.map((faq, i) => (
+                      <details
+                        key={`${faq.question}-${i}`}
+                        open={i === 0}
+                        className="group border-b border-brand-borderLight last:border-b-0 py-2.5"
+                      >
+                        <summary className="cursor-pointer list-none font-semibold text-[0.92rem] text-brand-dark hover:text-primary flex items-center justify-between gap-3">
+                          <span>{faq.question}</span>
+                          <span className="text-brand-muted transition-transform group-open:rotate-180">⌄</span>
+                        </summary>
+                        <p className="text-[0.88rem] text-brand-muted leading-[1.5] mt-2">{faq.answer}</p>
+                      </details>
+                    ))}
                   </div>
-                  <span className="text-xs font-semibold uppercase tracking-wider text-brand-muted mb-1">
-                    {info.title}
-                  </span>
-                  <span className="font-heading font-bold text-base text-brand-dark mb-1 break-words">
-                    {info.detail}
-                  </span>
-                  <span className="text-xs text-brand-muted">{info.subtext}</span>
-                </>
-              );
-              const cls =
-                "p-6 rounded-3xl bg-white border border-brand-borderLight shadow-sm flex flex-col items-start";
-              return info.href ? (
-                <Link
-                  key={`${info.title}-${i}`}
-                  href={info.href}
-                  className={`${cls} hover:border-primary/40 transition-colors`}
-                >
-                  {body}
-                </Link>
-              ) : (
-                <div key={`${info.title}-${i}`} className={cls}>
-                  {body}
                 </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Form and FAQ 2-Column Section */}
-        {(showForm || showFaq) && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-            {showForm && (
-              <div
-                className={`${
-                  showFaq ? "lg:col-span-7" : "lg:col-span-12 max-w-2xl mx-auto w-full"
-                } bg-white p-8 sm:p-10 rounded-3xl border border-brand-borderLight shadow-sm`}
-              >
-                <div className="mb-6">
-                  <h2 className="font-heading font-bold text-xl sm:text-2xl text-brand-dark mb-1">
-                    {contact.form.title}
-                  </h2>
-                  {contact.form.subtitle && (
-                    <p className="text-xs sm:text-sm text-brand-muted">{contact.form.subtitle}</p>
-                  )}
-                </div>
-
-                <ContactForm
-                  subjects={contact.form.subjects}
-                  buttonText={contact.form.buttonText}
-                  recipientEmail={contact.form.recipientEmail || siteConfig.contactEmail}
-                  successMessage={contact.form.successMessage}
-                />
-              </div>
-            )}
-
-            {showFaq && (
-              <div className={`${showForm ? "lg:col-span-5" : "lg:col-span-12"} space-y-4`}>
-                <div>
-                  <h2 className="font-heading font-bold text-xl sm:text-2xl text-brand-dark mb-1">
-                    {contact.faq.title}
-                  </h2>
-                  {contact.faq.subtitle && (
-                    <p className="text-xs sm:text-sm text-brand-muted mb-4">{contact.faq.subtitle}</p>
-                  )}
-                </div>
-
-                <FaqAccordion faqs={contact.faq.items} />
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -328,6 +328,11 @@ export interface AboutContent {
     subtitle: string;
     items: { title: string; desc: string; iconName: string }[];
   };
+  /** Green numbers bar (e.g. "50,000+ Monthly Readers"). */
+  stats: {
+    visible: boolean;
+    items: { value: string; label: string }[];
+  };
   team: {
     visible: boolean;
     title: string;
@@ -391,8 +396,11 @@ export interface FooterContent extends Omit<FooterSettings, "categorySlugs"> {
 }
 
 export interface SidebarSettings {
+  showSearch: boolean;
+  searchPlaceholder: string;
   showTopics: boolean;
   topicsTitle: string;
+  showTopicCounts: boolean;
   /** Categories to list. Empty = all. */
   topicCategorySlugs: string[];
   showPopular: boolean;
@@ -403,6 +411,19 @@ export interface SidebarSettings {
   cardText: string;
   cardLinkText: string;
   cardLinkHref: string;
+  /** Green "Join our newsletter" widget. */
+  showNewsletter: boolean;
+  newsletterTitle: string;
+  newsletterText: string;
+  newsletterButtonText: string;
+  /** Beige "Free guide" widget. */
+  showGuide: boolean;
+  guideBadge: string;
+  guideTitle: string;
+  guideText: string;
+  guideImage: string;
+  guideButtonText: string;
+  guideButtonHref: string;
 }
 
 export interface TemplateSettings {

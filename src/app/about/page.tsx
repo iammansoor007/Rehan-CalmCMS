@@ -5,7 +5,8 @@ import { getAboutData } from "@/lib/cms/client";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { breadcrumbJsonLd, buildMetadata, getSeoContext, webPageJsonLd } from "@/lib/seo";
 import { DynamicIcon } from "@/lib/icons";
-import { Sparkles, CheckCircle } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { CheckCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -21,11 +22,14 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
+const badge =
+  "inline-block px-4 py-1.5 rounded-full bg-primary-light text-primary text-[0.78rem] font-bold uppercase tracking-[0.12em] mb-3.5";
+
 export default async function AboutPage() {
   const [about, ctx] = await Promise.all([getAboutData(), getSeoContext()]);
 
   return (
-    <div className="py-16 bg-brand-bgSoft/30 min-h-screen">
+    <div className="bg-white pt-10 pb-24 min-h-[80vh]">
       <JsonLd
         data={[
           webPageJsonLd(ctx, {
@@ -41,45 +45,33 @@ export default async function AboutPage() {
           ]),
         ]}
       />
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-        {/* Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-4">
-          {about.badge && (
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{about.badge}</span>
-            </div>
-          )}
-          <h1 className="font-heading font-bold text-3xl sm:text-4xl lg:text-5xl text-brand-dark tracking-tight leading-[1.2]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "About Us" }]} />
+
+        {/* Hero banner */}
+        <div className="rounded-2xl bg-brand-bgSoft border border-brand-border px-6 py-10 sm:px-10 sm:py-12 mb-10 text-center">
+          {about.badge && <span className={badge}>{about.badge}</span>}
+          <h1 className="font-heading font-bold text-3xl sm:text-4xl lg:text-[2.5rem] text-brand-dark leading-[1.25] max-w-[840px] mx-auto mt-3 mb-4">
             {about.title}
           </h1>
           {about.subtitle && (
-            <p className="text-base sm:text-lg text-brand-muted leading-relaxed">{about.subtitle}</p>
+            <p className="text-[1.12rem] text-brand-muted leading-relaxed max-w-[720px] mx-auto">{about.subtitle}</p>
           )}
         </div>
 
         {about.image && (
-          <div className="relative aspect-[21/9] rounded-3xl overflow-hidden border border-brand-borderLight shadow-card bg-brand-bgLight">
-            <Image
-              src={about.image}
-              alt={about.title}
-              fill
-              priority
-              sizes="(max-width: 1024px) 100vw, 1024px"
-              className="object-cover"
-            />
+          <div className="relative aspect-[21/9] rounded-2xl overflow-hidden border border-brand-border shadow-card bg-brand-bgLight mb-10">
+            <Image src={about.image} alt={about.title} fill priority sizes="(max-width: 1280px) 100vw, 1280px" className="object-cover" />
           </div>
         )}
 
-        {/* Story Section */}
+        {/* Story */}
         {about.story.visible && (
-          <div className="bg-white rounded-3xl p-8 sm:p-12 border border-brand-borderLight shadow-sm">
+          <div className="rounded-2xl bg-white border border-brand-border p-7 sm:p-10 mb-10">
             <div className={about.story.image ? "grid grid-cols-1 md:grid-cols-2 gap-10 items-center" : ""}>
-              <div className="space-y-6">
-                <h2 className="font-heading font-bold text-2xl text-brand-dark tracking-tight">
-                  {about.story.title}
-                </h2>
-                <div className="space-y-4 text-base text-brand-muted leading-relaxed">
+              <div>
+                <h2 className="font-heading font-bold text-[1.75rem] text-brand-dark tracking-tight mb-5">{about.story.title}</h2>
+                <div className="space-y-4 text-[1.02rem] text-brand-muted leading-[1.7]">
                   {about.story.paragraphs.map((para, i) => (
                     <p key={i}>{para}</p>
                   ))}
@@ -87,104 +79,93 @@ export default async function AboutPage() {
               </div>
               {about.story.image && (
                 <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-brand-bgLight">
-                  <Image
-                    src={about.story.image}
-                    alt={about.story.title}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 480px"
-                    className="object-cover"
-                  />
+                  <Image src={about.story.image} alt={about.story.title} fill sizes="(max-width: 768px) 100vw, 560px" className="object-cover" />
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* Core Values */}
+        {/* Mission cards */}
         {about.values.visible && about.values.items.length > 0 && (
-          <div className="space-y-8">
-            <div className="text-center max-w-xl mx-auto">
-              <h2 className="font-heading font-bold text-2xl sm:text-3xl text-brand-dark tracking-tight mb-2">
-                {about.values.title}
-              </h2>
-              {about.values.subtitle && (
-                <p className="text-sm text-brand-muted">{about.values.subtitle}</p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="mb-12">
+            {(about.values.title || about.values.subtitle) && (
+              <div className="text-center max-w-xl mx-auto mb-8">
+                <h2 className="font-heading font-bold text-[2rem] text-brand-dark tracking-[-0.02em] mb-2">{about.values.title}</h2>
+                {about.values.subtitle && <p className="text-[1.05rem] text-brand-muted">{about.values.subtitle}</p>}
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
               {about.values.items.map((val, i) => (
                 <div
                   key={`${val.title}-${i}`}
-                  className="p-8 rounded-3xl bg-white border border-brand-borderLight shadow-sm flex flex-col items-start"
+                  className="rounded-2xl bg-white border border-brand-border px-7 py-8 transition-all hover:-translate-y-1 hover:border-primary hover:shadow-card"
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
-                    <DynamicIcon name={val.iconName} fallback="Compass" className="w-6 h-6 text-primary" />
+                  <div className="w-[50px] h-[50px] rounded-xl bg-primary-light text-primary-dark flex items-center justify-center mb-5">
+                    <DynamicIcon name={val.iconName} fallback="Compass" className="w-6 h-6" />
                   </div>
-                  <h3 className="font-heading font-bold text-lg text-brand-dark mb-2">{val.title}</h3>
-                  <p className="text-xs sm:text-sm text-brand-muted leading-relaxed">{val.desc}</p>
+                  <h3 className="font-heading font-bold text-[1.25rem] text-brand-dark mb-2.5">{val.title}</h3>
+                  <p className="text-[0.94rem] text-brand-muted leading-relaxed">{val.desc}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Editorial Team */}
+        {/* Stats bar */}
+        {about.stats?.visible && about.stats.items.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 rounded-2xl bg-primary text-white px-6 py-9 text-center">
+            {about.stats.items.map((s, i) => (
+              <div key={`${s.label}-${i}`}>
+                <span className="block font-heading font-extrabold text-[2.2rem] leading-tight mb-1">{s.value}</span>
+                <span className="text-[0.88rem] font-semibold uppercase tracking-[0.06em] opacity-90">{s.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Team */}
         {about.team.visible && about.team.members.length > 0 && (
-          <div className="space-y-8">
-            <div className="text-center max-w-xl mx-auto">
-              <h2 className="font-heading font-bold text-2xl sm:text-3xl text-brand-dark tracking-tight mb-2">
-                {about.team.title}
-              </h2>
-              {about.team.subtitle && <p className="text-sm text-brand-muted">{about.team.subtitle}</p>}
+          <div className="mt-16">
+            <div className="text-center mb-9">
+              <span className={badge}>Meet Our Team</span>
+              <h2 className="font-heading font-bold text-[2.25rem] text-brand-dark tracking-[-0.02em] mb-3">{about.team.title}</h2>
+              {about.team.subtitle && <p className="text-[1.05rem] text-brand-muted max-w-[580px] mx-auto">{about.team.subtitle}</p>}
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              {about.team.members.map((member, i) => (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
+              {about.team.members.map((m, i) => (
                 <div
-                  key={`${member.name}-${i}`}
-                  className="p-6 rounded-3xl bg-white border border-brand-borderLight shadow-sm text-center flex flex-col items-center"
+                  key={`${m.name}-${i}`}
+                  className="rounded-2xl bg-brand-bgSoft border border-brand-border px-6 py-8 text-center transition-all hover:-translate-y-1 hover:border-primary"
                 >
-                  {member.photo ? (
-                    <div className="relative w-20 h-20 rounded-full overflow-hidden mb-4 bg-brand-bgLight">
-                      <Image
-                        src={member.photo}
-                        alt={member.name}
-                        fill
-                        sizes="80px"
-                        className="object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-16 h-16 rounded-full bg-primary-light text-primary font-bold text-2xl flex items-center justify-center mb-4">
-                      {member.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <h3 className="font-heading font-semibold text-base text-brand-dark">{member.name}</h3>
-                  <span className="text-xs font-semibold text-primary block mt-0.5 mb-3">{member.role}</span>
-                  <p className="text-xs text-brand-muted leading-relaxed">{member.bio}</p>
+                  <div className="relative w-[90px] h-[90px] rounded-full overflow-hidden mx-auto mb-4 border-[3px] border-primary-light bg-primary-light flex items-center justify-center">
+                    {m.photo ? (
+                      <Image src={m.photo} alt={m.name} fill sizes="90px" className="object-cover" />
+                    ) : (
+                      <span className="text-primary font-bold text-3xl">{m.name.charAt(0).toUpperCase()}</span>
+                    )}
+                  </div>
+                  <h3 className="font-heading font-bold text-[1.2rem] text-brand-dark mb-1">{m.name}</h3>
+                  <span className="block text-[0.84rem] font-semibold text-primary mb-3">{m.role}</span>
+                  <p className="text-[0.88rem] text-brand-muted leading-[1.55]">{m.bio}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Commitments Banner */}
+        {/* Pledge */}
         {about.commitments.visible && about.commitments.items.length > 0 && (
-          <div className="p-8 sm:p-10 rounded-3xl bg-primary text-white space-y-6">
-            <div className="max-w-xl">
-              <h2 className="font-heading font-bold text-2xl sm:text-3xl tracking-tight mb-2">
-                {about.commitments.title}
-              </h2>
-              {about.commitments.subtitle && (
-                <p className="text-sm text-white/80">{about.commitments.subtitle}</p>
-              )}
+          <div className="mt-16 rounded-2xl bg-brand-bgSoft border border-brand-border p-8 sm:p-10">
+            <div className="max-w-xl mb-6">
+              <h2 className="font-heading font-bold text-[1.75rem] text-brand-dark tracking-tight mb-2">{about.commitments.title}</h2>
+              {about.commitments.subtitle && <p className="text-[0.95rem] text-brand-muted">{about.commitments.subtitle}</p>}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {about.commitments.items.map((c, i) => (
                 <div key={i} className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-brand-accentBeige flex-shrink-0 mt-0.5" />
-                  <span className="text-xs sm:text-sm text-white/95">{c}</span>
+                  <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span className="text-[0.95rem] text-brand-dark">{c}</span>
                 </div>
               ))}
             </div>

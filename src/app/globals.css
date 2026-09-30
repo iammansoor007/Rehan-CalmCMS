@@ -49,10 +49,15 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Rich-text body written in the admin editor (also used by the editor itself) */
 .cms-content {
-  color: #3f4f47;
-  font-size: 1rem;
-  line-height: 1.8;
+  color: #36443e;
+  font-size: 1.05rem;
+  line-height: 1.82;
   overflow-wrap: anywhere;
+}
+
+/* The editor keeps the smaller admin size */
+.cms-editor.cms-content {
+  font-size: 1rem;
 }
 
 .cms-content > * + * {

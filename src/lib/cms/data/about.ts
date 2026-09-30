@@ -43,6 +43,15 @@ export const aboutContent: AboutContent = {
       },
     ],
   },
+  stats: {
+    visible: true,
+    items: [
+      { value: "50,000+", label: "Monthly Readers" },
+      { value: "200+", label: "Wellness Guides" },
+      { value: "15+", label: "LMT Specialists" },
+      { value: "99.4%", label: "Positive Feedback" },
+    ],
+  },
   team: {
     visible: true,
     title: "Editorial Advisors & Contributors",

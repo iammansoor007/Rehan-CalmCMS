@@ -28,6 +28,7 @@ export function AboutEditor() {
         const story = sectionPatcher(setData, "story");
         const values = sectionPatcher(setData, "values");
         const team = sectionPatcher(setData, "team");
+        const stats = sectionPatcher(setData, "stats");
         const pledge = sectionPatcher(setData, "commitments");
 
         return (
@@ -97,6 +98,28 @@ export function AboutEditor() {
                     </div>
                     <TextAreaField label="Text" rows={2} value={item.desc} onChange={(v) => update({ desc: v })} />
                   </>
+                )}
+              />
+            </SectionCard>
+
+            <SectionCard
+              title="Numbers bar"
+              description="Green strip of big numbers (readers, guides…)"
+              visible={data.stats.visible}
+              onVisibleChange={(v) => stats({ visible: v })}
+            >
+              <ListEditor
+                items={data.stats.items}
+                onChange={(items) => stats({ items })}
+                newItem={() => ({ value: "", label: "" })}
+                itemLabel="Number"
+                addLabel="Add a number"
+                summary={(s) => `${s.value} ${s.label}`}
+                renderItem={(s, update) => (
+                  <div className="grid grid-cols-[140px_1fr] gap-3">
+                    <TextField label="Value" value={s.value} onChange={(v) => update({ value: v })} placeholder="50,000+" />
+                    <TextField label="Label" value={s.label} onChange={(v) => update({ label: v })} placeholder="Monthly Readers" />
+                  </div>
                 )}
               />
             </SectionCard>

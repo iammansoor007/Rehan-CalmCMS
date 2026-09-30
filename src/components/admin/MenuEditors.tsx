@@ -5,6 +5,7 @@ import { FooterSettings, NavItem, NavigationSettings, SidebarSettings, TemplateS
 import { ContentPage } from "./ContentPage";
 import {
   CategoryPicker,
+  ImageField,
   LinkField,
   ListEditor,
   NumberField,
@@ -207,13 +208,24 @@ export function SidebarEditor() {
         return (
           <>
             <SectionCard
-              title="Topics box"
-              description="Category chips"
+              title="Search box"
+              description="Opens the site search"
+              visible={data.showSearch}
+              onVisibleChange={(v) => set({ showSearch: v })}
+              defaultOpen
+            >
+              <TextField label="Placeholder text" value={data.searchPlaceholder} onChange={(v) => set({ searchPlaceholder: v })} />
+            </SectionCard>
+
+            <SectionCard
+              title="Categories box"
+              description="List of categories with post counts"
               visible={data.showTopics}
               onVisibleChange={(v) => set({ showTopics: v })}
               defaultOpen
             >
               <TextField label="Heading" value={data.topicsTitle} onChange={(v) => set({ topicsTitle: v })} />
+              <Toggle label="Show post counts, e.g. (4)" checked={data.showTopicCounts} onChange={(v) => set({ showTopicCounts: v })} />
               <CategoryPicker value={data.topicCategorySlugs} onChange={(v) => set({ topicCategorySlugs: v })} />
             </SectionCard>
 
@@ -231,11 +243,39 @@ export function SidebarEditor() {
             </SectionCard>
 
             <SectionCard
+              title="Newsletter box"
+              description="Green sign-up widget (subscribers appear under Leads)"
+              visible={data.showNewsletter}
+              onVisibleChange={(v) => set({ showNewsletter: v })}
+              defaultOpen
+            >
+              <TextField label="Heading" value={data.newsletterTitle} onChange={(v) => set({ newsletterTitle: v })} />
+              <TextAreaField label="Text" rows={2} value={data.newsletterText} onChange={(v) => set({ newsletterText: v })} />
+              <TextField label="Button text" value={data.newsletterButtonText} onChange={(v) => set({ newsletterButtonText: v })} />
+            </SectionCard>
+
+            <SectionCard
+              title="Free guide box"
+              description="Beige promo widget with image and button"
+              visible={data.showGuide}
+              onVisibleChange={(v) => set({ showGuide: v })}
+              defaultOpen
+            >
+              <TextField label="Small badge" value={data.guideBadge} onChange={(v) => set({ guideBadge: v })} />
+              <TextField label="Heading" value={data.guideTitle} onChange={(v) => set({ guideTitle: v })} />
+              <TextAreaField label="Text" rows={2} value={data.guideText} onChange={(v) => set({ guideText: v })} />
+              <ImageField label="Image" value={data.guideImage} onChange={(url) => set({ guideImage: url })} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <TextField label="Button text" value={data.guideButtonText} onChange={(v) => set({ guideButtonText: v })} />
+                <LinkField label="Button link" value={data.guideButtonHref} onChange={(v) => set({ guideButtonHref: v })} />
+              </div>
+            </SectionCard>
+
+            <SectionCard
               title="Message card"
-              description="Small highlighted card at the bottom"
+              description="Small highlighted card (off by default)"
               visible={data.showCard}
               onVisibleChange={(v) => set({ showCard: v })}
-              defaultOpen
             >
               <TextField label="Heading" value={data.cardTitle} onChange={(v) => set({ cardTitle: v })} />
               <TextAreaField label="Text" rows={2} value={data.cardText} onChange={(v) => set({ cardText: v })} />

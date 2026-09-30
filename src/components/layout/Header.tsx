@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, Menu, ChevronDown } from "lucide-react";
@@ -18,6 +18,17 @@ export function Header({ siteConfig, navigation, articles }: HeaderProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const pathname = usePathname();
+  const [initialQuery, setInitialQuery] = useState("");
+
+  // Sidebar search boxes (blog pages) open this modal with their text pre-filled.
+  useEffect(() => {
+    const open = (e: Event) => {
+      setInitialQuery(String((e as CustomEvent<string>).detail || ""));
+      setIsSearchOpen(true);
+    };
+    window.addEventListener("calmtouch:search", open);
+    return () => window.removeEventListener("calmtouch:search", open);
+  }, []);
 
   return (
     <>
@@ -146,8 +157,12 @@ export function Header({ siteConfig, navigation, articles }: HeaderProps) {
       {/* Live Search Modal */}
       <SearchModal
         isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
+        onClose={() => {
+          setIsSearchOpen(false);
+          setInitialQuery("");
+        }}
         articles={articles}
+        initialQuery={initialQuery}
       />
 
       {/* Mobile Drawer */}
