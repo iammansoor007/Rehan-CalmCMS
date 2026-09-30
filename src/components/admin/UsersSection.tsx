@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { Edit, Eye, EyeOff, KeyRound, Plus, Save, Trash2 } from "lucide-react";
+import { Edit, Eye, EyeOff, KeyRound, Link2, Plus, Save, Trash2, X } from "lucide-react";
 import { CmsUser } from "@/types/cms";
 import { ROLES, Role, roleLabel } from "@/lib/permissions";
 import { useToast } from "@/components/layout/Toast";
+import { useConfirm } from "./ConfirmDialog";
 import {
   api,
   cardCls,
@@ -37,6 +38,7 @@ function generatePassword(): string {
 
 export function UsersSection({ users, meUsername, onChanged }: UsersSectionProps) {
   const { showToast } = useToast();
+  const confirm = useConfirm();
 
   // `editing` holds the id of the user being edited (null = adding a new one).
   const [editing, setEditing] = useState<CmsUser | null>(null);
@@ -65,7 +67,7 @@ export function UsersSection({ users, meUsername, onChanged }: UsersSectionProps
     setDisplayName(u.displayName);
     setPassword("");
     setRole(u.role);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    document.getElementById("admin-main")?.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,7 +94,13 @@ export function UsersSection({ users, meUsername, onChanged }: UsersSectionProps
   };
 
   const handleDelete = async (u: CmsUser) => {
-    if (!confirm(`Delete user "${u.username}"? They will no longer be able to log in.`)) return;
+    const ok = await confirm({
+      title: `Delete user "${u.username}"?`,
+      message: "They will no longer be able to log in. Posts they wrote are kept.",
+      confirmLabel: "Delete user",
+      danger: true,
+    });
+    if (!ok) return;
     const res = await api(`/api/admin/users?id=${encodeURIComponent(u.id)}`, { method: "DELETE" });
     if (res.ok) {
       showToast("User deleted");
@@ -103,6 +111,28 @@ export function UsersSection({ users, meUsername, onChanged }: UsersSectionProps
     }
   };
 
+  const copyResetLink = async (u: CmsUser) => {
+    const res = await api<{ url: string }>(`/api/admin/users/reset-link?id=${encodeURIComponent(u.id)}`);
+    if (!res.ok || !res.data) {
+      showToast(res.error);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(res.data.url);
+      showToast(`Reset link copied — send it to ${u.displayName}. It works once and expires in 1 hour.`);
+    } catch {
+      window.prompt("Copy this reset link and send it to the user:", res.data.url);
+    }
+  };
+
+  const cancelReset = async (u: CmsUser) => {
+    const res = await api(`/api/admin/users/reset-link?id=${encodeURIComponent(u.id)}`, { method: "DELETE" });
+    showToast(res.ok ? "Reset request dismissed" : res.error);
+    if (res.ok) onChanged();
+  };
+
+  const pendingResets = users.filter((u) => u.resetRequestedAt);
+
   return (
     <div className="space-y-6 max-w-6xl">
       <div>
@@ -111,6 +141,42 @@ export function UsersSection({ users, meUsername, onChanged }: UsersSectionProps
           Add team members and choose what each person is allowed to do in the admin panel.
         </p>
       </div>
+
+      {pendingResets.length > 0 && (
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+            <KeyRound className="w-4 h-4" />
+            Password reset requests ({pendingResets.length})
+          </div>
+          <p className="text-xs text-amber-800">
+            These people clicked “Forgot password?”. Copy their reset link and send it to them (WhatsApp, email…).
+            Each link works once and expires one hour after the request.
+          </p>
+          <ul className="space-y-1.5 pt-1">
+            {pendingResets.map((u) => (
+              <li key={u.id} className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="font-semibold text-brand-dark">{u.displayName}</span>
+                <span className="text-brand-muted">@{u.username}{u.email ? ` · ${u.email}` : ""}</span>
+                <button
+                  type="button"
+                  onClick={() => copyResetLink(u)}
+                  className="ml-auto px-3 py-1 rounded-lg bg-primary text-white font-semibold hover:bg-primary-dark flex items-center gap-1"
+                >
+                  <Link2 className="w-3 h-3" /> Copy reset link
+                </button>
+                <button
+                  type="button"
+                  onClick={() => cancelReset(u)}
+                  className="px-2 py-1 rounded-lg border border-brand-border text-brand-muted hover:text-red-600 flex items-center gap-1"
+                  title="Dismiss request"
+                >
+                  <X className="w-3 h-3" /> Dismiss
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Form */}
@@ -273,6 +339,11 @@ export function UsersSection({ users, meUsername, onChanged }: UsersSectionProps
                           @{u.username}
                           {u.username === meUsername && " (you)"}
                         </span>
+                        {u.resetRequestedAt && (
+                          <span className="block mt-0.5 text-[10px] font-bold uppercase text-amber-700">
+                            Reset requested
+                          </span>
+                        )}
                       </div>
                     </div>
                   </td>

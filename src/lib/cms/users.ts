@@ -23,7 +23,18 @@ function toPublic(u: StoredUser): CmsUser {
     displayName: u.displayName || u.username,
     role: normalizeRole(u.role),
     createdAt: u.createdAt,
+    resetRequestedAt: resetIsPending(u) ? u.resetRequestedAt : undefined,
   };
+}
+
+const RESET_TTL_MS = 60 * 60 * 1000;
+
+function resetIsPending(u: StoredUser): boolean {
+  return (
+    !!u.resetToken &&
+    !!u.resetRequestedAt &&
+    Date.now() - new Date(u.resetRequestedAt).getTime() < RESET_TTL_MS
+  );
 }
 
 async function loadUsers(): Promise<StoredUser[]> {
@@ -37,6 +48,8 @@ async function loadUsers(): Promise<StoredUser[]> {
       displayName: d.displayName || "",
       role: normalizeRole(d.role),
       createdAt: new Date(d.createdAt).toISOString(),
+      resetToken: d.resetToken || undefined,
+      resetRequestedAt: d.resetRequestedAt ? new Date(d.resetRequestedAt).toISOString() : undefined,
     }));
   }
   return readStore().users;
@@ -183,4 +196,64 @@ export async function deleteUser(id: string, actingUsername: string): Promise<vo
       s.users = s.users.filter((u) => u.id !== id);
     });
   }
+}
+
+// ---------------------------------------------------------------------------
+// Forgot password
+// ---------------------------------------------------------------------------
+
+async function setResetFields(id: string, token: string, at: string | null) {
+  if (await hasMongo()) {
+    await User.findByIdAndUpdate(id, { resetToken: token, resetRequestedAt: at ? new Date(at) : null });
+  } else {
+    updateStore((s) => {
+      const u = s.users.find((x) => x.id === id);
+      if (u) {
+        u.resetToken = token || undefined;
+        u.resetRequestedAt = at || undefined;
+      }
+    });
+  }
+}
+
+/**
+ * "Forgot password": records a one-time reset request for the account. No email is
+ * sent (none is configured); an administrator sees the request under Users and hands
+ * the reset link to the person. Returns nothing so the caller cannot tell whether
+ * the account exists.
+ */
+export async function requestPasswordReset(usernameOrEmail: string): Promise<void> {
+  const needle = usernameOrEmail.trim().toLowerCase();
+  if (!needle) return;
+  const users = await loadUsers();
+  const user = users.find(
+    (u) => u.username.toLowerCase() === needle || (u.email && u.email.toLowerCase() === needle)
+  );
+  if (!user) return;
+  // Keep the existing link if it is still valid so an admin who already copied it isn't surprised.
+  if (resetIsPending(user)) return;
+  await setResetFields(user.id, crypto.randomBytes(32).toString("hex"), new Date().toISOString());
+}
+
+/** The reset link for a pending request (administrators only). */
+export async function getPendingResetToken(id: string): Promise<string | null> {
+  const user = (await loadUsers()).find((u) => u.id === id);
+  return user && resetIsPending(user) ? (user.resetToken as string) : null;
+}
+
+export async function cancelPasswordReset(id: string): Promise<void> {
+  await setResetFields(id, "", null);
+}
+
+/** Completes a reset: validates the token, stores the new password, clears the token. */
+export async function resetPasswordWithToken(token: string, password: string): Promise<StoredUser> {
+  if (!token || token.length < 32) throw new CmsError(400, "This reset link is not valid.");
+  if (!password || password.length < 8) throw new CmsError(400, "Password must be at least 8 characters.");
+  const user = (await loadUsers()).find((u) => u.resetToken === token);
+  if (!user || !resetIsPending(user)) {
+    throw new CmsError(400, "This reset link has expired or was already used. Please ask for a new one.");
+  }
+  await setPasswordHash(user.id, hashPassword(password));
+  await setResetFields(user.id, "", null);
+  return user;
 }

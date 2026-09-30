@@ -7,6 +7,8 @@ export interface IUser extends Document {
   email?: string;
   displayName?: string;
   role: string;
+  resetToken?: string;
+  resetRequestedAt?: Date | null;
   createdAt: Date;
 }
 
@@ -16,6 +18,8 @@ const UserSchema: Schema = new Schema({
   email: { type: String, default: "" },
   displayName: { type: String, default: "" },
   role: { type: String, default: "administrator" },
+  resetToken: { type: String, default: "" },
+  resetRequestedAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },
 });
 

@@ -5,6 +5,7 @@ import { Check, CheckSquare, Copy, ExternalLink, RefreshCw, Save, Search, Trash2
 import { MediaItem } from "@/types/cms";
 import { Role, can } from "@/lib/permissions";
 import { useToast } from "@/components/layout/Toast";
+import { useConfirm } from "./ConfirmDialog";
 import {
   api,
   formatBytes,
@@ -27,6 +28,7 @@ interface MediaSectionProps {
 
 export function MediaSection({ items, role, usedIn, onChanged, uploadRequest }: MediaSectionProps) {
   const { showToast } = useToast();
+  const confirm = useConfirm();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -76,15 +78,18 @@ export function MediaSection({ items, role, usedIn, onChanged, uploadRequest }: 
   const confirmDelete = (urls: string[]) => {
     const usage = urls.flatMap((u) => usedIn(u));
     const usageNote = usage.length
-      ? `\n\nIn use by: ${usage.slice(0, 5).join(", ")}${usage.length > 5 ? "…" : ""}\nThey will show a broken image until you replace it.`
+      ? `\n\nStill in use by: ${usage.slice(0, 5).join(", ")}${usage.length > 5 ? "…" : ""}. Those places will show a broken image until you replace it.`
       : "";
-    return confirm(
-      `Permanently delete ${urls.length === 1 ? "this image" : `${urls.length} images`}? This cannot be undone.${usageNote}`
-    );
+    return confirm({
+      title: urls.length === 1 ? "Delete this image?" : `Delete ${urls.length} images?`,
+      message: `The file will be removed from the server. This cannot be undone.${usageNote}`,
+      confirmLabel: urls.length === 1 ? "Delete image" : "Delete images",
+      danger: true,
+    });
   };
 
   const deleteUrls = async (urls: string[]) => {
-    if (urls.length === 0 || !confirmDelete(urls)) return;
+    if (urls.length === 0 || !(await confirmDelete(urls))) return;
     const res = await api("/api/admin/media", { method: "DELETE", body: JSON.stringify({ urls }) });
     if (res.ok) {
       showToast(urls.length === 1 ? "Image deleted" : `${urls.length} images deleted`);

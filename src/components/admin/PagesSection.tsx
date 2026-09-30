@@ -6,6 +6,7 @@ import { Edit, ExternalLink, Eye, Image as ImageIcon, Plus, Save, Search, Trash2
 import { CmsPage, MediaItem } from "@/types/cms";
 import { Role, can } from "@/lib/permissions";
 import { useToast } from "@/components/layout/Toast";
+import { useConfirm } from "./ConfirmDialog";
 import { slugify, slugifyInput } from "@/lib/slugify";
 import { RichTextEditor, RichTextEditorHandle } from "./RichTextEditor";
 import { MediaPicker } from "./MediaPicker";
@@ -34,6 +35,7 @@ interface PagesListProps {
 
 export function PagesList({ pages, onNew, onEdit, onChanged }: PagesListProps) {
   const { showToast } = useToast();
+  const confirm = useConfirm();
   const [search, setSearch] = useState("");
 
   const visible = pages.filter((p) => {
@@ -42,7 +44,13 @@ export function PagesList({ pages, onNew, onEdit, onChanged }: PagesListProps) {
   });
 
   const handleDelete = async (page: CmsPage) => {
-    if (!confirm(`Permanently delete the page "${page.title}"? This cannot be undone.`)) return;
+    const ok = await confirm({
+      title: "Delete this page?",
+      message: `"${page.title}" will be permanently deleted. This cannot be undone.`,
+      confirmLabel: "Delete page",
+      danger: true,
+    });
+    if (!ok) return;
     const res = await api(`/api/admin/pages?slug=${encodeURIComponent(page.slug)}`, {
       method: "DELETE",
     });
@@ -129,28 +137,28 @@ export function PagesList({ pages, onNew, onEdit, onChanged }: PagesListProps) {
                   {formatDateTime(page.updatedAt)}
                 </td>
                 <td className="p-3.5 text-right">
-                  <div className="flex items-center justify-end gap-1">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <button
+                      onClick={() => onEdit(page)}
+                      className="px-2.5 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1 bg-primary text-white hover:bg-primary-dark shadow-sm"
+                      title="Edit page"
+                    >
+                      <Edit className="w-3.5 h-3.5" /> Edit
+                    </button>
                     <Link
                       href={`/${page.slug}`}
                       target="_blank"
-                      className="p-1.5 rounded-md text-brand-muted hover:text-brand-dark hover:bg-brand-bgLight"
+                      className="px-2.5 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1 border border-brand-border text-brand-dark hover:bg-brand-bgLight"
                       title={page.status === "published" ? "View page" : "Preview page"}
                     >
-                      <ExternalLink className="w-4 h-4" />
+                      <ExternalLink className="w-3.5 h-3.5" /> {page.status === "published" ? "View" : "Preview"}
                     </Link>
                     <button
-                      onClick={() => onEdit(page)}
-                      className="p-1.5 rounded-md text-brand-muted hover:text-primary hover:bg-brand-bgLight"
-                      title="Edit page"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
                       onClick={() => handleDelete(page)}
-                      className="p-1.5 rounded-md text-brand-muted hover:text-red-600 hover:bg-red-50"
+                      className="px-2.5 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1 border border-red-200 text-red-600 hover:bg-red-50"
                       title="Delete page"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" /> Delete
                     </button>
                   </div>
                 </td>
@@ -171,7 +179,8 @@ interface PageEditorProps {
   initial: CmsPage | null;
   media: MediaItem[];
   me: { displayName: string; role: Role };
-  onSaved: () => void;
+  /** Receives the saved page so the editor can stay open in "Edit" mode. */
+  onSaved: (saved: CmsPage) => void;
   onCancel: () => void;
   onMediaChanged: () => void;
 }
@@ -217,17 +226,21 @@ export function PageEditor({ initial, media, me, onSaved, onCancel, onMediaChang
 
     setSaving(true);
     const url = `/api/admin/pages${originalSlug ? `?original=${encodeURIComponent(originalSlug)}` : ""}`;
-    const res = await api(url, { method: "POST", body: JSON.stringify({ ...draft, title, slug }) });
+    const res = await api<CmsPage>(url, { method: "POST", body: JSON.stringify({ ...draft, title, slug }) });
     setSaving(false);
 
-    if (!res.ok) {
+    if (!res.ok || !res.data) {
       showToast(res.error);
       return;
     }
     showToast(
-      draft.status === "draft" ? "Draft saved." : originalSlug ? "Page updated!" : "Page published!"
+      draft.status === "draft"
+        ? "Draft saved. You can keep editing."
+        : originalSlug
+        ? "Page updated!"
+        : "Page published! You can keep editing or go back to All Pages."
     );
-    onSaved();
+    onSaved(res.data);
   };
 
   return (

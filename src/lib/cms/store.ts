@@ -23,6 +23,9 @@ export interface StoredUser {
   displayName: string;
   role: Role;
   createdAt: string;
+  /** One-time password-reset token, set by "Forgot password". */
+  resetToken?: string;
+  resetRequestedAt?: string;
 }
 
 export interface Store {

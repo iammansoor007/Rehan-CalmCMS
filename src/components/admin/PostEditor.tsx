@@ -31,7 +31,8 @@ interface PostEditorProps {
   categories: Category[];
   media: MediaItem[];
   me: { username: string; displayName: string; role: Role };
-  onSaved: () => void;
+  /** Receives the saved post so the editor can stay open in "Edit" mode. */
+  onSaved: (saved: Article) => void;
   onCancel: () => void;
   onMediaChanged: () => void;
 }
@@ -153,20 +154,20 @@ export function PostEditor({
     const res = await api<Article>(url, { method: "POST", body: JSON.stringify(payload) });
     setSaving(false);
 
-    if (!res.ok) {
+    if (!res.ok || !res.data) {
       showToast(res.error);
       return;
     }
     showToast(
       nextStatus === "draft"
-        ? "Draft saved."
+        ? "Draft saved. You can keep editing."
         : nextStatus === "scheduled"
         ? `Post scheduled for ${formatDateTime(scheduledAt)}.`
         : originalSlug
         ? "Post updated!"
-        : "Post published!"
+        : "Post published! You can keep editing or go back to All Posts."
     );
-    onSaved();
+    onSaved(res.data);
   };
 
   const primaryLabel = saving
@@ -283,19 +284,30 @@ export function PostEditor({
 
             <div>
               <label className="block text-xs font-semibold text-brand-dark mb-1.5">Status</label>
-              <select
-                value={status}
-                onChange={(e) => update({ status: e.target.value as Article["status"] })}
-                className={inputCls}
-              >
-                <option value="published" disabled={!canPublish}>
-                  Published
-                </option>
-                <option value="draft">Draft</option>
-                <option value="scheduled" disabled={!canPublish}>
-                  Scheduled
-                </option>
-              </select>
+              <div className="grid grid-cols-3 gap-1.5">
+                {(
+                  [
+                    ["published", "Publish", "bg-emerald-600 border-emerald-600"],
+                    ["draft", "Draft", "bg-amber-600 border-amber-600"],
+                    ["scheduled", "Schedule", "bg-sky-600 border-sky-600"],
+                  ] as const
+                ).map(([value, label, activeCls]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    disabled={value !== "draft" && !canPublish}
+                    onClick={() => update({ status: value })}
+                    className={`py-2 rounded-lg text-xs font-semibold border transition-colors flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed ${
+                      status === value
+                        ? `${activeCls} text-white shadow-sm`
+                        : "bg-white border-brand-border text-brand-dark hover:border-primary hover:text-primary"
+                    }`}
+                  >
+                    {value === "scheduled" && <CalendarClock className="w-3.5 h-3.5" />}
+                    {label}
+                  </button>
+                ))}
+              </div>
               {!canPublish && (
                 <p className="text-[11px] text-brand-muted mt-1">
                   Your role can save drafts only. An editor will publish this post.

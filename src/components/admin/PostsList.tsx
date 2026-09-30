@@ -6,6 +6,7 @@ import { CalendarClock, Edit, ExternalLink, Plus, Search, Trash2 } from "lucide-
 import { Article } from "@/types/cms";
 import { Role, can } from "@/lib/permissions";
 import { useToast } from "@/components/layout/Toast";
+import { useConfirm } from "./ConfirmDialog";
 import { api, formatDateTime, primaryBtnCls } from "./shared";
 import { analyseSeo } from "@/lib/seoAnalysis";
 import { ScoreDot } from "./SeoPanel";
@@ -49,6 +50,7 @@ const STATUS_STYLE = {
 
 export function PostsList({ articles, me, onNew, onEdit, onChanged }: PostsListProps) {
   const { showToast } = useToast();
+  const confirm = useConfirm();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
 
@@ -70,7 +72,13 @@ export function PostsList({ articles, me, onNew, onEdit, onChanged }: PostsListP
     (a.authorId === me.username && (can(me.role, "publish_posts") || a.status === "draft"));
 
   const handleDelete = async (a: Article) => {
-    if (!confirm(`Permanently delete the post "${a.title}"? This cannot be undone.`)) return;
+    const ok = await confirm({
+      title: "Delete this post?",
+      message: `"${a.title}" will be permanently deleted. This cannot be undone.`,
+      confirmLabel: "Delete post",
+      danger: true,
+    });
+    if (!ok) return;
     const res = await api(`/api/admin/articles?slug=${encodeURIComponent(a.slug)}`, {
       method: "DELETE",
     });
@@ -222,31 +230,31 @@ export function PostsList({ articles, me, onNew, onEdit, onChanged }: PostsListP
                   <td className="p-3.5 text-brand-muted">{art.author}</td>
                   <td className="p-3.5 text-brand-muted whitespace-nowrap">{art.date}</td>
                   <td className="p-3.5 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Link
-                        href={`/blog/${art.slug}`}
-                        target="_blank"
-                        className="p-1.5 rounded-md text-brand-muted hover:text-brand-dark hover:bg-brand-bgLight"
-                        title={st === "published" ? "View post" : "Preview post"}
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </Link>
+                    <div className="flex items-center justify-end gap-1.5">
                       {canEdit(art) && (
                         <button
                           onClick={() => onEdit(art)}
-                          className="p-1.5 rounded-md text-brand-muted hover:text-primary hover:bg-brand-bgLight"
+                          className="px-2.5 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1 bg-primary text-white hover:bg-primary-dark shadow-sm"
                           title="Edit post"
                         >
-                          <Edit className="w-4 h-4" />
+                          <Edit className="w-3.5 h-3.5" /> Edit
                         </button>
                       )}
+                      <Link
+                        href={`/blog/${art.slug}`}
+                        target="_blank"
+                        className="px-2.5 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1 border border-brand-border text-brand-dark hover:bg-brand-bgLight"
+                        title={st === "published" ? "View post" : "Preview post"}
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" /> {st === "published" ? "View" : "Preview"}
+                      </Link>
                       {canDelete(art) && (
                         <button
                           onClick={() => handleDelete(art)}
-                          className="p-1.5 rounded-md text-brand-muted hover:text-red-600 hover:bg-red-50"
+                          className="px-2.5 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1 border border-red-200 text-red-600 hover:bg-red-50"
                           title="Delete post"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
                         </button>
                       )}
                     </div>

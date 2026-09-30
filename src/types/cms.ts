@@ -168,6 +168,8 @@ export interface CmsUser {
   displayName: string;
   role: Role;
   createdAt: string;
+  /** Set while a "Forgot password" request is waiting for an administrator. */
+  resetRequestedAt?: string;
 }
 
 export interface MediaItem {

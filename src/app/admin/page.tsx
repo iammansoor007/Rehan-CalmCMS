@@ -42,6 +42,8 @@ import {
   UserCog,
   MessageSquare,
   ChevronDown,
+  KeyRound,
+  ArrowLeft,
 } from "lucide-react";
 import { Capability, Role, can, roleLabel } from "@/lib/permissions";
 import { api } from "@/components/admin/shared";
@@ -58,6 +60,7 @@ import { NavigationEditor, FooterEditor, SidebarEditor, TemplatesEditor } from "
 import { AdminEnvContext, LinkSuggestion } from "@/components/admin/AdminEnv";
 import { SeoSettingsEditor, RedirectsEditor } from "@/components/admin/SeoSettingsEditor";
 import { ProfileSection } from "@/components/admin/ProfileSection";
+import { ConfirmProvider } from "@/components/admin/ConfirmDialog";
 
 type Section =
   | "dashboard"
@@ -99,6 +102,13 @@ export default function AdminPage() {
   const [loginPassword, setLoginPassword] = useState("");
   const [authLoading, setAuthLoading] = useState(true);
   const [loginBusy, setLoginBusy] = useState(false);
+  // "Forgot password?" and the reset-link flow (/admin?reset=TOKEN)
+  const [loginView, setLoginView] = useState<"login" | "forgot" | "reset">("login");
+  const [forgotAccount, setForgotAccount] = useState("");
+  const [forgotDone, setForgotDone] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetConfirm, setResetConfirm] = useState("");
 
   // Nav state
   const [currentSection, setCurrentSection] = useState<Section>("dashboard");
@@ -128,6 +138,12 @@ export default function AdminPage() {
 
   // 1. Check auth on mount, and log out if any request reports an expired session
   useEffect(() => {
+    const token = new URLSearchParams(window.location.search).get("reset");
+    if (token) {
+      setResetToken(token);
+      setLoginView("reset");
+      window.history.replaceState(null, "", "/admin");
+    }
     checkAuth();
     const onUnauthorized = () => {
       setMe((current) => {
@@ -179,6 +195,42 @@ export default function AdminPage() {
     } finally {
       setLoginBusy(false);
     }
+  };
+
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginBusy(true);
+    const res = await api<{ message: string }>("/api/admin/auth/forgot", {
+      method: "POST",
+      body: JSON.stringify({ account: forgotAccount }),
+    });
+    setLoginBusy(false);
+    if (res.ok && res.data) setForgotDone(res.data.message);
+    else showToast(res.error);
+  };
+
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (resetPassword !== resetConfirm) {
+      showToast("The two passwords do not match.");
+      return;
+    }
+    setLoginBusy(true);
+    const res = await api<{ username: string }>("/api/admin/auth/reset", {
+      method: "POST",
+      body: JSON.stringify({ token: resetToken, password: resetPassword }),
+    });
+    setLoginBusy(false);
+    if (!res.ok) {
+      showToast(res.error);
+      return;
+    }
+    showToast("Password updated! You are now logged in.");
+    setResetToken("");
+    setResetPassword("");
+    setResetConfirm("");
+    setLoginView("login");
+    await checkAuth();
   };
 
   const handleLogout = async () => {
@@ -317,6 +369,120 @@ export default function AdminPage() {
     );
   }
 
+  if (!me && loginView !== "login") {
+    const inputCls =
+      "w-full px-3.5 py-2.5 rounded-lg border border-brand-border text-sm text-brand-dark focus:outline-none focus:border-primary";
+    return (
+      <div className="min-h-screen bg-[#1D2327] flex flex-col justify-center items-center px-4">
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-8">
+            <div className="w-14 h-14 rounded-full bg-primary/20 border-2 border-primary mx-auto flex items-center justify-center text-primary mb-3">
+              <KeyRound className="w-6 h-6" />
+            </div>
+            <h1 className="text-2xl font-heading font-bold text-white tracking-tight">
+              {loginView === "forgot" ? "Forgot your password?" : "Choose a new password"}
+            </h1>
+            <p className="text-xs text-white/60 mt-1">
+              {loginView === "forgot"
+                ? "Enter your username or email and your site administrator will send you a reset link."
+                : "Pick a strong password of at least 8 characters."}
+            </p>
+          </div>
+
+          {loginView === "forgot" ? (
+            <form onSubmit={handleForgot} className="bg-white rounded-xl shadow-2xl p-7 space-y-5 border border-white/10">
+              {forgotDone ? (
+                <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 leading-relaxed">
+                  {forgotDone}
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
+                    Username or email
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    autoComplete="username"
+                    value={forgotAccount}
+                    onChange={(e) => setForgotAccount(e.target.value)}
+                    className={inputCls}
+                  />
+                </div>
+              )}
+              {!forgotDone && (
+                <button
+                  type="submit"
+                  disabled={loginBusy}
+                  className="w-full py-3 rounded-lg bg-primary hover:bg-primary-dark text-white text-sm font-semibold shadow transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  <KeyRound className="w-4 h-4" />
+                  <span>{loginBusy ? "Sending…" : "Request a reset link"}</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginView("login");
+                  setForgotDone("");
+                }}
+                className="w-full text-xs font-semibold text-brand-muted hover:text-brand-dark flex items-center justify-center gap-1"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to log in
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleReset} className="bg-white rounded-xl shadow-2xl p-7 space-y-5 border border-white/10">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
+                  New password
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  value={resetPassword}
+                  onChange={(e) => setResetPassword(e.target.value)}
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
+                  Confirm new password
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  value={resetConfirm}
+                  onChange={(e) => setResetConfirm(e.target.value)}
+                  className={inputCls}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loginBusy}
+                className="w-full py-3 rounded-lg bg-primary hover:bg-primary-dark text-white text-sm font-semibold shadow transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                <Lock className="w-4 h-4" />
+                <span>{loginBusy ? "Saving…" : "Save new password & log in"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginView("login")}
+                className="w-full text-xs font-semibold text-brand-muted hover:text-brand-dark flex items-center justify-center gap-1"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to log in
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (!me) {
     return (
       <div className="min-h-screen bg-[#1D2327] flex flex-col justify-center items-center px-4">
@@ -374,6 +540,17 @@ export default function AdminPage() {
               <Lock className="w-4 h-4" />
               <span>{loginBusy ? "Logging in…" : "Log In to Dashboard"}</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setForgotAccount(loginUsername);
+                setLoginView("forgot");
+              }}
+              className="w-full text-xs font-semibold text-primary hover:underline"
+            >
+              Forgot your password?
+            </button>
           </form>
 
           <div className="text-center mt-6">
@@ -418,7 +595,9 @@ export default function AdminPage() {
         linkSuggestions,
       }}
     >
-    <div className="min-h-screen bg-[#F0F0F1] flex flex-col font-sans">
+    <ConfirmProvider>
+    {/* h-screen + overflow-hidden: the top bar and sidebar stay put; only the content area scrolls */}
+    <div className="h-screen overflow-hidden bg-[#F0F0F1] flex flex-col font-sans">
       {/* 1. WordPress-style top admin bar */}
       <div className="h-10 bg-[#1D2327] text-[#C3C4C7] px-2 sm:px-4 flex items-center justify-between text-xs z-30 flex-shrink-0">
         <div className="flex items-center h-full">
@@ -595,7 +774,7 @@ export default function AdminPage() {
 
             {allow("view_leads") && (
               <>
-                <SideHeading>Engagement & Leads</SideHeading>
+                <SideHeading>Leads</SideHeading>
                 <SideItem
                   icon={<Users className="w-4 h-4" />}
                   label="Subscribers"
@@ -615,7 +794,7 @@ export default function AdminPage() {
 
             {allow("manage_settings") && (
               <>
-                <SideHeading>Site Content</SideHeading>
+                <SideHeading>Appearance</SideHeading>
                 <SideItem
                   icon={<Home className="w-4 h-4" />}
                   label="Homepage"
@@ -634,8 +813,6 @@ export default function AdminPage() {
                   active={currentSection === "contact"}
                   onClick={() => setCurrentSection("contact")}
                 />
-
-                <SideHeading>Appearance</SideHeading>
                 <SideItem
                   icon={<MenuIcon className="w-4 h-4" />}
                   label="Navigation Menu"
@@ -666,11 +843,7 @@ export default function AdminPage() {
                   active={currentSection === "branding"}
                   onClick={() => setCurrentSection("branding")}
                 />
-              </>
-            )}
 
-            {allow("manage_settings") && (
-              <>
                 <SideHeading>SEO</SideHeading>
                 <SideItem
                   icon={<SearchCheck className="w-4 h-4" />}
@@ -689,13 +862,19 @@ export default function AdminPage() {
 
             {allow("manage_users") && (
               <>
-                <SideHeading>Administration</SideHeading>
+                <SideHeading>Users</SideHeading>
                 <SideItem
                   icon={<UserCog className="w-4 h-4" />}
-                  label="Users"
+                  label="All Users"
                   badge={users.length}
                   active={currentSection === "users"}
                   onClick={() => setCurrentSection("users")}
+                />
+                <SideItem
+                  icon={<KeyRound className="w-4 h-4" />}
+                  label="My Profile"
+                  active={currentSection === "profile"}
+                  onClick={() => setCurrentSection("profile")}
                 />
               </>
             )}
@@ -860,9 +1039,11 @@ export default function AdminPage() {
               categories={categories}
               media={mediaList}
               me={me}
-              onSaved={async () => {
+              onSaved={async (saved) => {
                 await loadAllData();
-                setCurrentSection("posts");
+                // Stay on the editor (now in "Edit" mode), like WordPress does after Publish.
+                setEditorArticle(saved);
+                setEditorKey((k) => k + 1);
               }}
               onCancel={() => setCurrentSection("posts")}
               onMediaChanged={reloadMedia}
@@ -901,9 +1082,10 @@ export default function AdminPage() {
               initial={editorPage}
               media={mediaList}
               me={me}
-              onSaved={async () => {
+              onSaved={async (saved) => {
                 await loadAllData();
-                setCurrentSection("pages");
+                setEditorPage(saved);
+                setEditorKey((k) => k + 1);
               }}
               onCancel={() => setCurrentSection("pages")}
               onMediaChanged={reloadMedia}
@@ -1238,6 +1420,7 @@ export default function AdminPage() {
         </div>
       </div>
     </div>
+    </ConfirmProvider>
     </AdminEnvContext.Provider>
   );
 }

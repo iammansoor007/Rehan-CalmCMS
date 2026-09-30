@@ -6,6 +6,7 @@ import { Edit, ExternalLink, Plus, Save, Trash2 } from "lucide-react";
 import { Category, SeoMeta } from "@/types/cms";
 import { SeoPanel } from "./SeoPanel";
 import { useToast } from "@/components/layout/Toast";
+import { useConfirm } from "./ConfirmDialog";
 import { slugify, slugifyInput } from "@/lib/slugify";
 import { descendantSlugs, orderCategories } from "@/lib/categoryTree";
 import {
@@ -27,6 +28,7 @@ interface CategoriesSectionProps {
 
 export function CategoriesSection({ categories, onChanged }: CategoriesSectionProps) {
   const { showToast } = useToast();
+  const confirm = useConfirm();
 
   // `editing` holds the slug of the category being edited (null = adding a new one).
   const [editing, setEditing] = useState<string | null>(null);
@@ -61,7 +63,7 @@ export function CategoriesSection({ categories, onChanged }: CategoriesSectionPr
     setParent(cat.parent || "");
     setDescription(cat.description || "");
     setSeo(cat.seo || {});
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    document.getElementById("admin-main")?.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // The slug always follows the name (it can still be edited by hand).
@@ -111,10 +113,15 @@ export function CategoriesSection({ categories, onChanged }: CategoriesSectionPr
 
   const handleDelete = async (cat: Category) => {
     const kids = real.filter((c) => c.parent === cat.slug).length;
-    const message = kids
-      ? `Delete "${cat.name}"? Its ${kids} sub-categor${kids === 1 ? "y" : "ies"} will move up a level.`
-      : `Delete category "${cat.name}"?`;
-    if (!confirm(message)) return;
+    const ok = await confirm({
+      title: `Delete "${cat.name}"?`,
+      message: kids
+        ? `Its ${kids} sub-categor${kids === 1 ? "y" : "ies"} will move up one level. Posts in this category are kept.`
+        : "Posts in this category are kept; only the category is removed.",
+      confirmLabel: "Delete category",
+      danger: true,
+    });
+    if (!ok) return;
 
     const res = await api(`/api/admin/categories?slug=${encodeURIComponent(cat.slug)}`, {
       method: "DELETE",

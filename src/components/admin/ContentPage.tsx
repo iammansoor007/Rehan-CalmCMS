@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ExternalLink, RefreshCw, RotateCcw, Save } from "lucide-react";
 import { useToast } from "@/components/layout/Toast";
+import { useConfirm } from "./ConfirmDialog";
 import { api, primaryBtnCls, secondaryBtnCls } from "./shared";
 
 interface ContentPageProps<T> {
@@ -28,6 +29,7 @@ export function ContentPage<T>({
   children,
 }: ContentPageProps<T>) {
   const { showToast } = useToast();
+  const confirm = useConfirm();
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -80,7 +82,13 @@ export function ContentPage<T>({
   };
 
   const reset = async () => {
-    if (!confirm("Reset this whole page to the original built-in text? Your edits here will be lost.")) return;
+    const ok = await confirm({
+      title: "Reset to the original content?",
+      message: "Everything you changed on this screen goes back to the built-in text. This cannot be undone.",
+      confirmLabel: "Reset",
+      danger: true,
+    });
+    if (!ok) return;
     const res = await api(`/api/admin/content?key=${contentKey}`, { method: "DELETE" });
     if (res.ok) {
       showToast("Reset to the original content.");
