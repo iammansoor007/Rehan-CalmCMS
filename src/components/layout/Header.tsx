@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Menu, ChevronDown } from "lucide-react";
+import { Search, ChevronDown } from "lucide-react";
 import { SiteConfig, NavigationContent, Article } from "@/types/cms";
 import { SearchModal } from "../ui/SearchModal";
 import { MobileDrawer } from "./MobileDrawer";
@@ -13,6 +13,12 @@ interface HeaderProps {
   navigation: NavigationContent;
   articles: Article[];
 }
+
+/** Underline-on-hover nav link, as in the original design. */
+const linkCls = (active: boolean) =>
+  `relative py-1.5 text-[0.95rem] font-medium transition-colors after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-0.5 after:rounded-sm after:bg-primary after:transition-all after:duration-300 hover:text-primary hover:after:w-full ${
+    active ? "text-primary after:w-full" : "text-brand-dark after:w-0"
+  }`;
 
 export function Header({ siteConfig, navigation, articles }: HeaderProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -30,105 +36,91 @@ export function Header({ siteConfig, navigation, articles }: HeaderProps) {
     return () => window.removeEventListener("calmtouch:search", open);
   }, []);
 
+  const inCategories = pathname?.startsWith("/category") || false;
+
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-brand-borderLight transition-all">
+      <header className="sticky top-0 z-[1000] bg-white/95 backdrop-blur-xl border-b border-brand-borderLight">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
+          <Link href="/" className="flex items-center gap-3">
             {siteConfig.logoUrl ? (
-              <div className="relative w-10 h-10 rounded-full overflow-hidden flex items-center justify-center border border-brand-border">
+              <div className="w-[38px] h-[38px] rounded-full overflow-hidden flex items-center justify-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={siteConfig.logoUrl}
-                  alt={siteConfig.brandName}
-                  className="w-full h-full object-cover"
-                />
+                <img src={siteConfig.logoUrl} alt={siteConfig.brandName} className="w-full h-full object-cover" />
               </div>
             ) : (
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300">
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.4 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
-                  <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path>
+              <div className="w-[38px] h-[38px] rounded-full bg-primary-light text-primary flex items-center justify-center">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.4 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+                  <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
                 </svg>
               </div>
             )}
-            <div>
-              <span className="font-heading font-bold text-xl tracking-tight text-brand-dark block leading-none">
-                {siteConfig.brandName}
-              </span>
-              <span className="text-[11px] font-medium text-brand-muted tracking-wide block mt-1">
-                {siteConfig.tagline}
-              </span>
+            <div className="flex flex-col">
+              <span className="font-heading font-bold text-[1.4rem] text-brand-dark leading-[1.1]">{siteConfig.brandName}</span>
+              <span className="text-[0.72rem] font-medium text-brand-muted tracking-[0.02em]">{siteConfig.tagline}</span>
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-7">
-            <Link
-              href="/"
-              className={`text-sm font-medium transition-colors ${
-                pathname === "/" ? "text-primary font-semibold" : "text-brand-dark hover:text-primary"
-              }`}
-            >
-              {navigation.homeLabel}
-            </Link>
+          {/* Desktop nav */}
+          <nav className="hidden md:block">
+            <ul className="flex items-center gap-8">
+              <li>
+                <Link href="/" className={linkCls(pathname === "/")}>
+                  {navigation.homeLabel}
+                </Link>
+              </li>
 
-            {/* Categories Dropdown */}
-            {navigation.categoriesMenu.visible && (
-            <div className="relative group py-2">
-              <button className="flex items-center gap-1.5 text-sm font-medium text-brand-dark group-hover:text-primary transition-colors focus:outline-none">
-                <span>{navigation.categoriesMenu.label}</span>
-                <ChevronDown className="w-4 h-4 transition-transform duration-200 group-hover:rotate-180 text-brand-muted" />
-              </button>
-
-              <div className="absolute top-full left-0 w-60 bg-white border border-brand-border rounded-2xl shadow-floating py-2 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 z-50">
-                {navigation.categoriesMenu.items.map((cat) => (
+              {navigation.categoriesMenu.visible && (
+                <li className="relative group">
                   <Link
-                    key={cat.slug}
-                    href={cat.href}
-                    className="block px-4 py-2 text-sm text-brand-dark hover:bg-brand-bgLight/80 hover:text-primary transition-colors"
-                    style={cat.depth ? { paddingLeft: 16 + cat.depth * 16 } : undefined}
+                    href={navigation.categoriesMenu.items[0]?.href || "/category/all"}
+                    className={`inline-flex items-center gap-1 ${linkCls(inCategories)}`}
                   >
-                    {cat.depth ? "– " : ""}
-                    {cat.label}
+                    {navigation.categoriesMenu.label}
+                    <ChevronDown className="w-3 h-3 transition-transform duration-[250ms] group-hover:rotate-180" strokeWidth={2.5} />
                   </Link>
-                ))}
-              </div>
-            </div>
-            )}
+                  <ul className="absolute top-full -left-3 min-w-[220px] py-2.5 bg-white border border-brand-border rounded-2xl shadow-card opacity-0 invisible translate-y-3 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-[1100]">
+                    {navigation.categoriesMenu.items.map((cat) => (
+                      <li key={cat.slug}>
+                        {cat.slug === "all" && <div className="h-px bg-brand-borderLight my-1.5" />}
+                        <Link
+                          href={cat.href}
+                          className="block px-5 py-2.5 text-[0.92rem] font-medium text-brand-dark transition-all hover:bg-primary-light hover:text-primary-dark hover:pl-6"
+                          style={cat.depth ? { paddingLeft: 20 + cat.depth * 14 } : undefined}
+                        >
+                          {cat.depth ? "– " : ""}
+                          {cat.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              )}
 
-            {navigation.links.map((item) => (
-              <Link
-                key={`${item.href}-${item.label}`}
-                href={item.href}
-                target={item.newTab ? "_blank" : undefined}
-                rel={item.newTab ? "noopener noreferrer" : undefined}
-                className={`text-sm font-medium transition-colors ${
-                  pathname === item.href ? "text-primary font-semibold" : "text-brand-dark hover:text-primary"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
+              {navigation.links.map((item) => (
+                <li key={`${item.href}-${item.label}`}>
+                  <Link
+                    href={item.href}
+                    target={item.newTab ? "_blank" : undefined}
+                    rel={item.newTab ? "noopener noreferrer" : undefined}
+                    className={linkCls(pathname === item.href)}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </nav>
 
-          {/* Actions: Search & Mobile Menu Button */}
-          <div className="flex items-center gap-3">
+          {/* Actions */}
+          <div className="flex items-center gap-4">
             {navigation.showSearch && (
               <button
                 onClick={() => setIsSearchOpen(true)}
                 aria-label="Search articles"
-                className="p-2.5 rounded-full text-brand-dark hover:text-primary hover:bg-brand-bgLight transition-colors"
+                className="w-[42px] h-[42px] rounded-full flex items-center justify-center text-brand-dark bg-brand-bgSoft border border-brand-borderLight hover:text-primary hover:bg-primary-light transition-colors"
               >
                 <Search className="w-5 h-5" />
               </button>
@@ -137,7 +129,7 @@ export function Header({ siteConfig, navigation, articles }: HeaderProps) {
             {navigation.cta.visible && navigation.cta.text && navigation.cta.href && (
               <Link
                 href={navigation.cta.href}
-                className="hidden md:inline-flex px-5 py-2.5 rounded-full bg-primary text-white text-sm font-semibold hover:bg-primary-dark shadow-sm transition-colors"
+                className="hidden md:inline-flex px-6 py-2.5 rounded-full bg-primary text-white text-[0.95rem] font-semibold shadow-[0_4px_14px_rgba(78,110,88,0.25)] hover:bg-primary-dark hover:-translate-y-0.5 transition-all"
               >
                 {navigation.cta.text}
               </Link>
@@ -146,15 +138,16 @@ export function Header({ siteConfig, navigation, articles }: HeaderProps) {
             <button
               onClick={() => setIsDrawerOpen(true)}
               aria-label="Open mobile navigation"
-              className="md:hidden p-2.5 rounded-lg text-brand-dark hover:bg-brand-bgLight transition-colors"
+              className="md:hidden w-[42px] h-[42px] rounded-lg flex flex-col items-center justify-center gap-[5px]"
             >
-              <Menu className="w-6 h-6" />
+              <span className="w-5 h-0.5 bg-brand-dark" />
+              <span className="w-5 h-0.5 bg-brand-dark" />
+              <span className="w-5 h-0.5 bg-brand-dark" />
             </button>
           </div>
         </div>
       </header>
 
-      {/* Live Search Modal */}
       <SearchModal
         isOpen={isSearchOpen}
         onClose={() => {
@@ -165,7 +158,6 @@ export function Header({ siteConfig, navigation, articles }: HeaderProps) {
         initialQuery={initialQuery}
       />
 
-      {/* Mobile Drawer */}
       <MobileDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}

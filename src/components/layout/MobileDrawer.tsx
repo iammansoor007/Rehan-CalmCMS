@@ -2,7 +2,6 @@
 
 import React, { useEffect } from "react";
 import Link from "next/link";
-import { X } from "lucide-react";
 import { SiteConfig, NavigationContent } from "@/types/cms";
 
 interface MobileDrawerProps {
@@ -14,116 +13,85 @@ interface MobileDrawerProps {
 
 export function MobileDrawer({ isOpen, onClose, siteConfig, navigation }: MobileDrawerProps) {
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
+    document.body.style.overflow = isOpen ? "hidden" : "";
+    return () => {
       document.body.style.overflow = "";
-    }
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-      />
+  const linkCls = "font-heading text-[1.15rem] font-medium text-brand-dark hover:text-primary transition-colors";
 
-      {/* Drawer Content */}
-      <aside className="relative ml-auto w-full max-w-xs bg-white h-full shadow-floating flex flex-col z-10 overflow-y-auto">
-        {/* Header */}
-        <div className="p-5 border-b border-brand-borderLight flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.4 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
+  return (
+    <>
+      <div className="fixed inset-0 z-[1000] bg-brand-dark/40 backdrop-blur-sm" onClick={onClose} />
+      <aside className="fixed top-0 right-0 z-[1001] w-[300px] max-w-[85vw] h-screen overflow-y-auto bg-white shadow-floating px-6 py-8 flex flex-col">
+        <div className="flex items-center justify-between mb-10">
+          <div className="flex items-center gap-3">
+            <div className="w-[38px] h-[38px] rounded-full bg-primary-light text-primary flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.4 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
               </svg>
             </div>
-            <span className="font-heading font-bold text-lg text-brand-dark">
-              {siteConfig.brandName}
-            </span>
+            <span className="font-heading font-bold text-[1.2rem] text-brand-dark">{siteConfig.brandName}</span>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-lg text-brand-muted hover:text-brand-dark hover:bg-brand-bgLight transition-colors"
-          >
-            <X className="w-5 h-5" />
+          <button onClick={onClose} aria-label="Close menu" className="text-2xl text-brand-muted hover:text-brand-dark">
+            &times;
           </button>
         </div>
 
-        {/* Links */}
-        <div className="p-5 space-y-6 flex-1">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-brand-muted block mb-2">
-              Menu
-            </span>
-            <ul className="space-y-1">
-              <li>
-                <Link
-                  href="/"
-                  onClick={onClose}
-                  className="block px-3 py-2 rounded-xl text-sm font-medium text-brand-dark hover:bg-brand-bgLight hover:text-primary transition-colors"
-                >
-                  {navigation.homeLabel}
-                </Link>
-              </li>
-              {navigation.links.map((item) => (
-                <li key={`${item.href}-${item.label}`}>
-                  <Link
-                    href={item.href}
-                    onClick={onClose}
-                    target={item.newTab ? "_blank" : undefined}
-                    className="block px-3 py-2 rounded-xl text-sm font-medium text-brand-dark hover:bg-brand-bgLight hover:text-primary transition-colors"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-              {navigation.cta.visible && navigation.cta.text && navigation.cta.href && (
-                <li className="pt-2">
-                  <Link
-                    href={navigation.cta.href}
-                    onClick={onClose}
-                    className="block text-center px-3 py-2.5 rounded-full bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition-colors"
-                  >
-                    {navigation.cta.text}
-                  </Link>
-                </li>
-              )}
-            </ul>
-          </div>
+        <ul className="flex flex-col gap-5">
+          <li>
+            <Link href="/" onClick={onClose} className={linkCls}>
+              {navigation.homeLabel}
+            </Link>
+          </li>
 
           {navigation.categoriesMenu.visible && (
-          <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-brand-muted block mb-2">
-              {navigation.categoriesMenu.label}
-            </span>
-            <ul className="space-y-1">
-              {navigation.categoriesMenu.items.map((cat) => (
-                <li key={cat.slug}>
-                  <Link
-                    href={cat.href}
-                    onClick={onClose}
-                    className="block px-3 py-2 rounded-xl text-sm font-medium text-brand-dark/80 hover:bg-brand-bgLight hover:text-primary transition-colors"
-                    style={cat.depth ? { paddingLeft: 12 + cat.depth * 16 } : undefined}
-                  >
-                    {cat.depth ? "– " : "• "}
-                    {cat.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+            <li>
+              <span className="block px-0 pt-1 pb-1 text-xs font-bold uppercase tracking-[0.1em] text-primary">
+                {navigation.categoriesMenu.label}
+              </span>
+              <ul className="flex flex-col gap-3 pt-2">
+                {navigation.categoriesMenu.items.map((cat) => (
+                  <li key={cat.slug} style={cat.depth ? { paddingLeft: cat.depth * 14 } : undefined}>
+                    <Link href={cat.href} onClick={onClose} className="pl-3.5 text-[0.95rem] font-medium text-brand-dark hover:text-primary transition-colors">
+                      {cat.depth ? "– " : "• "}
+                      {cat.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </li>
           )}
-        </div>
 
-        {/* Footer info in drawer */}
-        <div className="p-5 border-t border-brand-borderLight text-xs text-brand-muted">
-          <p>{siteConfig.brandName} — {siteConfig.tagline}</p>
-        </div>
+          {navigation.links.map((item) => (
+            <li key={`${item.href}-${item.label}`}>
+              <Link
+                href={item.href}
+                onClick={onClose}
+                target={item.newTab ? "_blank" : undefined}
+                className={linkCls}
+              >
+                {item.label}
+              </Link>
+            </li>
+          ))}
+
+          {navigation.cta.visible && navigation.cta.text && navigation.cta.href && (
+            <li className="pt-2">
+              <Link
+                href={navigation.cta.href}
+                onClick={onClose}
+                className="block text-center px-4 py-3 rounded-full bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition-colors"
+              >
+                {navigation.cta.text}
+              </Link>
+            </li>
+          )}
+        </ul>
       </aside>
-    </div>
+    </>
   );
 }

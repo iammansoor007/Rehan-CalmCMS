@@ -168,6 +168,8 @@ export function HomepageEditor() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <TextField label="Button text" value={data.hero.ctaText} onChange={(v) => hero({ ctaText: v })} hint="Leave empty to hide the button." />
                 <LinkField label="Button link" value={data.hero.ctaHref} onChange={(v) => hero({ ctaHref: v })} />
+                <TextField label="Second button text" value={data.hero.secondaryCtaText} onChange={(v) => hero({ secondaryCtaText: v })} hint="Outlined button. Empty hides it." />
+                <LinkField label="Second button link" value={data.hero.secondaryCtaHref} onChange={(v) => hero({ secondaryCtaHref: v })} />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <TextField label="Image card: small label" value={data.hero.cardLabel} onChange={(v) => hero({ cardLabel: v })} />
@@ -220,6 +222,7 @@ export function HomepageEditor() {
               visible={data.latestSection.visible}
               onVisibleChange={(v) => latest({ visible: v })}
             >
+              <TextField label="Badge" value={data.latestSection.badge} onChange={(v) => latest({ badge: v })} />
               <TextField label="Title" value={data.latestSection.title} onChange={(v) => latest({ title: v })} />
               <TextAreaField label="Subtitle" rows={2} value={data.latestSection.subtitle} onChange={(v) => latest({ subtitle: v })} />
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -285,6 +288,9 @@ export function HomepageEditor() {
               visible={data.trustSection.visible}
               onVisibleChange={(v) => trust({ visible: v })}
             >
+              <TextField label="Badge" value={data.trustSection.badge} onChange={(v) => trust({ badge: v })} />
+              <TextField label="Title" value={data.trustSection.title} onChange={(v) => trust({ title: v })} hint="Empty hides the heading." />
+              <TextAreaField label="Subtitle" rows={2} value={data.trustSection.subtitle} onChange={(v) => trust({ subtitle: v })} />
               <ListEditor
                 items={data.trustSection.items}
                 onChange={(items) => trust({ items })}

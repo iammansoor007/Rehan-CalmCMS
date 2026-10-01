@@ -1,115 +1,107 @@
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { HomepageContent } from "@/types/cms";
-import { Sparkles, ArrowRight } from "lucide-react";
 
 interface HeroProps {
   hero: HomepageContent["hero"];
 }
 
+/** Full-width photo hero with dark overlay, centered text and two buttons (matches the original design). */
 export function Hero({ hero }: HeroProps) {
+  const image = hero.image || "/assets/images/hero.png";
+  const title = [hero.titleStart, hero.titleHighlight, hero.titleEnd].filter(Boolean).join(" ");
+  const hasStats = hero.stats.some((s) => s.value || s.label);
+
   return (
-    <section className="relative bg-brand-bgLight/70 pt-16 pb-20 overflow-hidden border-b border-brand-borderLight">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          {/* Left Column */}
-          <div className="lg:col-span-7 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold tracking-wide">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{hero.badge}</span>
-            </div>
+    <section
+      id="hero"
+      aria-label={hero.imageAlt || undefined}
+      className="relative w-full min-h-[600px] flex items-center justify-center bg-cover bg-no-repeat overflow-hidden py-24 sm:py-[130px] sm:pb-[140px]"
+      style={{ backgroundImage: `url('${image}')`, backgroundPosition: "center 35%" }}
+    >
+      <div
+        className="absolute inset-0 z-[1]"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(14,22,18,0.70) 0%, rgba(30,44,36,0.58) 50%, rgba(12,18,15,0.72) 100%), radial-gradient(circle at center, rgba(12,18,15,0.30) 0%, rgba(8,14,11,0.65) 100%)",
+        }}
+      />
+      <div className="relative z-[2] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex justify-center">
+        <div className="max-w-[840px] text-center flex flex-col items-center">
+          {hero.badge && (
+            <span className="inline-block px-[22px] py-2 mb-6 rounded-full bg-white/[0.16] text-white text-[0.78rem] font-bold uppercase tracking-[0.14em] border border-white/35 backdrop-blur-[10px] shadow-[0_4px_18px_rgba(0,0,0,0.15)]">
+              {hero.badge}
+            </span>
+          )}
 
-            <h1 className="font-heading font-bold text-4xl sm:text-5xl lg:text-6xl text-brand-dark tracking-tight leading-[1.15]">
-              {hero.titleStart}{" "}
-              <span className="text-primary italic font-serif font-normal">
-                {hero.titleHighlight}
-              </span>{" "}
-              {hero.titleEnd}
-            </h1>
+          <h1 className="font-heading font-bold text-4xl sm:text-5xl lg:text-[3.5rem] text-white leading-[1.18] tracking-[-0.025em] mb-[22px] [text-shadow:0_3px_16px_rgba(0,0,0,0.35)]">
+            {title}
+          </h1>
 
-            <p className="text-base sm:text-lg text-brand-muted max-w-xl leading-relaxed">
+          {hero.subtitle && (
+            <p className="text-lg sm:text-[1.22rem] text-white/95 mb-[38px] max-w-[680px] leading-[1.68] [text-shadow:0_2px_8px_rgba(0,0,0,0.3)]">
               {hero.subtitle}
             </p>
+          )}
 
+          <div className="flex flex-wrap items-center justify-center gap-[18px]">
             {hero.ctaText && hero.ctaHref && (
-              <div>
-                <Link
-                  href={hero.ctaHref}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-white text-sm font-semibold shadow-sm hover:bg-primary-dark transition-colors"
-                >
-                  <span>{hero.ctaText}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
+              <Link
+                href={hero.ctaHref}
+                className="inline-flex items-center justify-center px-7 py-3.5 rounded-full bg-primary text-white text-[0.95rem] font-semibold shadow-[0_4px_14px_rgba(78,110,88,0.25)] hover:bg-primary-dark hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(78,110,88,0.35)] transition-all"
+              >
+                {hero.ctaText}
+              </Link>
             )}
+            {hero.secondaryCtaText && hero.secondaryCtaHref && (
+              <Link
+                href={hero.secondaryCtaHref}
+                className="inline-flex items-center justify-center px-7 py-3.5 rounded-full bg-white/15 text-white text-[0.95rem] font-semibold border-[1.5px] border-white/45 backdrop-blur-lg hover:bg-white hover:text-brand-dark hover:border-white hover:-translate-y-0.5 hover:shadow-[0_6px_22px_rgba(0,0,0,0.25)] transition-all"
+              >
+                {hero.secondaryCtaText}
+              </Link>
+            )}
+          </div>
 
-            {/* Popular quick tags */}
-            <div className="pt-2 flex flex-wrap items-center gap-2">
-              <span className="text-xs font-semibold text-brand-dark">Popular Topics:</span>
+          {hero.popularTags.length > 0 && (
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
               {hero.popularTags.map((tag) => (
                 <Link
                   key={tag}
                   href="/category/all"
-                  className="px-3 py-1 bg-white rounded-full text-xs font-medium text-brand-muted hover:text-primary hover:border-primary border border-brand-border transition-colors"
+                  className="px-3.5 py-1 rounded-full bg-white/15 text-white/90 text-xs font-medium border border-white/30 hover:bg-white hover:text-brand-dark transition-colors"
                 >
                   {tag}
                 </Link>
               ))}
             </div>
+          )}
 
-            {/* Stats strip */}
-            <div className="pt-6 border-t border-brand-borderLight flex items-center gap-8 sm:gap-12">
-              {hero.stats.map((st) => (
-                <div key={st.label}>
-                  <div className="font-heading font-bold text-2xl sm:text-3xl text-primary">
-                    {st.value}
-                  </div>
-                  <div className="text-xs text-brand-muted font-medium mt-0.5">
-                    {st.label}
-                  </div>
+          {hasStats && (
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-10 text-white">
+              {hero.stats.map((s) => (
+                <div key={s.label + s.value}>
+                  <div className="font-heading font-bold text-3xl">{s.value}</div>
+                  <div className="text-xs text-white/80 font-medium mt-0.5">{s.label}</div>
                 </div>
               ))}
             </div>
-          </div>
+          )}
 
-          {/* Right Column: Hero Visual */}
-          <div className="lg:col-span-5 relative">
-            <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-floating border-4 border-white bg-white">
-              <Image
-                src={hero.image || "/assets/images/hero.png"}
-                alt={hero.imageAlt || "Massage & Wellness Experience"}
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 40vw"
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-              {hero.cardTitle && (
-                <div className="absolute bottom-6 left-6 right-6 p-4 rounded-2xl bg-white/90 backdrop-blur-md border border-white/40 shadow-sm flex items-center justify-between">
-                  <div>
-                    {hero.cardLabel && (
-                      <span className="text-xs font-bold uppercase tracking-wider text-primary block">
-                        {hero.cardLabel}
-                      </span>
-                    )}
-                    <span className="text-sm font-semibold text-brand-dark">
-                      {hero.cardTitle}
-                    </span>
-                  </div>
-                  {hero.cardHref && (
-                    <Link
-                      href={hero.cardHref}
-                      aria-label={hero.cardTitle}
-                      className="p-2 rounded-full bg-primary text-white hover:bg-primary-dark transition-colors"
-                    >
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+          {hero.cardTitle && (
+            <Link
+              href={hero.cardHref || "#"}
+              className="mt-8 inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/90 text-left hover:bg-white transition-colors"
+            >
+              <span>
+                {hero.cardLabel && (
+                  <span className="block text-[11px] font-bold uppercase tracking-wider text-primary">{hero.cardLabel}</span>
+                )}
+                <span className="text-sm font-semibold text-brand-dark">{hero.cardTitle}</span>
+              </span>
+              <span className="text-primary">→</span>
+            </Link>
+          )}
         </div>
       </div>
     </section>

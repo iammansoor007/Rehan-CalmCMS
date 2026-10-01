@@ -2,61 +2,41 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Article } from "@/types/cms";
-import { Calendar, User, Sparkles } from "lucide-react";
-import { getExcerpt } from "@/lib/excerpt";
+import { Sparkles } from "lucide-react";
 
 interface ArticleCardProps {
   article: Article;
   priority?: boolean;
 }
 
+/** Post card: picture, green category tag, title and date (matches the original design). */
 export function ArticleCard({ article, priority = false }: ArticleCardProps) {
   return (
-    <article className="group bg-white rounded-2xl overflow-hidden border border-brand-borderLight hover:border-primary/30 transition-all duration-300 hover:shadow-card flex flex-col h-full">
-      <Link href={`/blog/${article.slug}`} className="block relative aspect-[16/10] overflow-hidden bg-brand-bgLight">
+    <article className="group flex flex-col h-full overflow-hidden rounded-2xl bg-white border border-brand-border transition-all hover:-translate-y-1.5 hover:shadow-card">
+      <Link href={`/blog/${article.slug}`} className="relative block w-full h-[200px] overflow-hidden bg-brand-bgLight">
         {article.img ? (
           <Image
             src={article.img}
             alt={article.imgAlt || article.title}
             fill
             priority={priority}
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/15 via-brand-bgLight to-brand-accentBeigeLight text-primary/40">
             <Sparkles className="w-10 h-10" />
           </div>
         )}
-        <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold text-primary shadow-sm">
-          {article.category}
-        </div>
       </Link>
 
-      <div className="p-5 flex flex-col flex-1">
-        <div className="flex items-center gap-3 text-xs text-brand-muted mb-2.5">
-          <span className="flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5" />
-            {article.date}
-          </span>
-          <span>•</span>
-          <span className="flex items-center gap-1 truncate">
-            <User className="w-3.5 h-3.5" />
-            {article.author}
-          </span>
-        </div>
-
-        <h3 className="font-heading font-semibold text-lg text-brand-dark group-hover:text-primary transition-colors line-clamp-2 leading-snug mb-2">
+      <div className="flex flex-col flex-grow p-6">
+        <span className="mb-2.5 text-[0.72rem] font-bold uppercase tracking-[0.08em] text-primary">{article.category}</span>
+        <h3 className="flex-grow mb-4 font-heading font-semibold text-[1.1rem] leading-[1.35] text-brand-dark transition-colors group-hover:text-primary">
           <Link href={`/blog/${article.slug}`}>{article.title}</Link>
         </h3>
-
-        <p className="text-sm text-brand-muted line-clamp-2 mb-4 flex-1">
-          {getExcerpt(article)}
-        </p>
-
-        <div className="pt-3 border-t border-brand-borderLight flex items-center justify-between text-xs font-semibold text-primary">
-          <span>Read Guide →</span>
-          <span className="text-brand-muted font-normal">5 min read</span>
+        <div className="flex items-center justify-between pt-3.5 border-t border-brand-borderLight text-[0.8rem] text-brand-muted">
+          <span>{article.date}</span>
         </div>
       </div>
     </article>

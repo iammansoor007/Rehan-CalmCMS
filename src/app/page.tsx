@@ -10,7 +10,7 @@ import {
 import { pickCategories } from "@/lib/categoryTree";
 import { buildMetadata, getSeoContext } from "@/lib/seo";
 import { Hero } from "@/components/home/Hero";
-import { CategoryBar } from "@/components/home/CategoryBar";
+import { CategoryBar, SectionHead } from "@/components/home/CategoryBar";
 import { GuidebookSection } from "@/components/home/GuidebookSection";
 import { TrustSection } from "@/components/home/TrustSection";
 import { NewsletterSection } from "@/components/home/NewsletterSection";
@@ -18,7 +18,6 @@ import { ArticleCard } from "@/components/ui/ArticleCard";
 import { Sidebar } from "@/components/ui/Sidebar";
 import { CategoryTabs, BrowseTab } from "@/components/ui/CategoryTabs";
 import { HomeSectionId } from "@/types/cms";
-import { Sparkles } from "lucide-react";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -82,25 +81,32 @@ export default async function HomePage() {
     hero: homepage.hero.visible ? <Hero hero={homepage.hero} /> : null,
 
     categories: homepage.categoriesSection.visible ? (
-      <CategoryBar categoriesSection={homepage.categoriesSection} categories={categories} />
+      <CategoryBar categoriesSection={homepage.categoriesSection} categories={categories} articles={articles} />
     ) : null,
 
     latest: latest.visible ? (
-      <section className="py-20 bg-brand-bgSoft/50 border-b border-brand-borderLight">
+      <section id="latest" className="pt-[90px] pb-[100px] bg-brand-bgSoft">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
             <div>
-              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-brand-dark tracking-tight mb-2">
-                {latest.title}
-              </h2>
-              <p className="text-sm sm:text-base text-brand-muted">{latest.subtitle}</p>
+              {latest.badge && (
+                <span className="inline-block px-4 py-1.5 mb-2 rounded-full bg-primary-light text-primary text-[0.78rem] font-bold uppercase tracking-[0.12em]">
+                  {latest.badge}
+                </span>
+              )}
+              <h2 className="font-heading font-semibold text-3xl sm:text-4xl tracking-[-0.02em] text-brand-dark">{latest.title}</h2>
+              {latest.subtitle && <p className="text-base text-brand-muted mt-2">{latest.subtitle}</p>}
             </div>
             {latest.linkText && latest.linkHref && (
               <Link
                 href={latest.linkHref}
-                className="text-sm font-semibold text-primary hover:text-primary-dark transition-colors"
+                className="inline-flex items-center gap-1.5 font-heading font-semibold text-[0.95rem] text-primary hover:text-primary-dark hover:translate-x-1 transition-all"
               >
                 {latest.linkText}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
               </Link>
             )}
           </div>
@@ -111,9 +117,9 @@ export default async function HomePage() {
                 <p className="text-sm text-brand-muted">No articles to show yet.</p>
               ) : (
                 <div
-                  className={`grid grid-cols-1 sm:grid-cols-2 ${
-                    latest.showSidebar ? "" : "lg:grid-cols-3"
-                  } gap-6`}
+                  className={`grid grid-cols-1 sm:grid-cols-2 gap-6 ${
+                    latest.showSidebar ? "" : "lg:grid-cols-4"
+                  }`}
                 >
                   {latestArticles.map((article, idx) => (
                     <ArticleCard key={article.slug} article={article} priority={idx === 0} />
@@ -134,18 +140,9 @@ export default async function HomePage() {
 
     browse:
       browse.visible && browseTabs.length > 0 ? (
-        <section className="py-20 bg-white border-b border-brand-borderLight">
+        <section id="browse" className="py-[50px] bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-10">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-3">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{browse.badge}</span>
-              </div>
-              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-brand-dark tracking-tight mb-3">
-                {browse.title}
-              </h2>
-              <p className="text-sm sm:text-base text-brand-muted">{browse.subtitle}</p>
-            </div>
+            <SectionHead badge={browse.badge} title={browse.title} subtitle={browse.subtitle} />
 
             <CategoryTabs tabs={browseTabs} />
           </div>

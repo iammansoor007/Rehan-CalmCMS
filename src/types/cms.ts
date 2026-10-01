@@ -246,6 +246,9 @@ export interface HomepageContent {
     /** Primary call-to-action button. Hidden when text or link is empty. */
     ctaText?: string;
     ctaHref?: string;
+    /** Second (outlined) button. Hidden when text or link is empty. */
+    secondaryCtaText?: string;
+    secondaryCtaHref?: string;
     /** Small caption card floating over the hero image. Hidden when title is empty. */
     cardLabel?: string;
     cardTitle?: string;
@@ -262,6 +265,7 @@ export interface HomepageContent {
   };
   latestSection: {
     visible: boolean;
+    badge: string;
     title: string;
     subtitle: string;
     /** How many posts to list. */
@@ -293,6 +297,9 @@ export interface HomepageContent {
   };
   trustSection: {
     visible: boolean;
+    badge: string;
+    title: string;
+    subtitle: string;
     items: {
       title: string;
       desc: string;
