@@ -4,36 +4,48 @@ export const categoriesData: Category[] = [
   {
     slug: "massage-therapy",
     name: "Massage Therapy",
+    image: "/assets/images/hero.png",
+    cardText: "Techniques and benefits",
     description:
       "Browse our complete archive of classic modalities, professional session advice, and bodywork techniques tailored for stress and body alignment.",
   },
   {
     slug: "pain-relief",
     name: "Pain Relief",
+    image: "/assets/images/article1.png",
+    cardText: "Ease everyday discomfort",
     description:
       "Target everyday discomfort, lower back strain, neck tightness, and muscle spasms with safe therapeutic approaches.",
   },
   {
     slug: "stress-sleep",
     name: "Stress & Sleep",
+    image: "/assets/images/article3.png",
+    cardText: "Relax and rest better",
     description:
       "Quiet an overactive mind and prepare your nervous system for deep restorative sleep with evening massage rituals.",
   },
   {
     slug: "self-care",
     name: "Self-Care",
+    image: "/assets/images/article2.png",
+    cardText: "Simple care at home",
     description:
       "Practical self-massage routines, reflexology tips, and foam rolling techniques you can easily do at home.",
   },
   {
     slug: "aromatherapy",
     name: "Aromatherapy",
+    image: "/assets/images/article4.png",
+    cardText: "Oils, scents, and calm",
     description:
       "Enhance your relaxation journey with essential oil blends, plant extracts, and mindful fragrance pairings.",
   },
   {
     slug: "recovery",
     name: "Recovery",
+    image: "/assets/images/guide.png",
+    cardText: "Support active bodies",
     description:
       "Support active bodies with post-workout massage, hydrotherapy combinations, and injury prevention advice.",
   },

@@ -6,7 +6,6 @@ import { HomeSectionId, HomepageContent } from "@/types/cms";
 import { ContentPage } from "./ContentPage";
 import {
   CategoryPicker,
-  Field,
   IconField,
   ImageField,
   LinkField,
@@ -20,7 +19,6 @@ import {
   sectionPatcher,
 } from "./fields";
 import { SeoPanel } from "./SeoPanel";
-import { inputCls } from "./shared";
 
 const DEFAULT_HERO_IMAGE = "/assets/images/hero.png";
 
@@ -156,14 +154,7 @@ export function HomepageEditor() {
               />
               <TextField label="Image alt text (SEO)" value={data.hero.imageAlt} onChange={(v) => hero({ imageAlt: v })} />
               <TextField label="Badge" value={data.hero.badge} onChange={(v) => hero({ badge: v })} />
-              <Field label="Headline">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <input className={inputCls} placeholder="Start" value={data.hero.titleStart} onChange={(e) => hero({ titleStart: e.target.value })} />
-                  <input className={inputCls} placeholder="Highlighted words" value={data.hero.titleHighlight} onChange={(e) => hero({ titleHighlight: e.target.value })} />
-                  <input className={inputCls} placeholder="End" value={data.hero.titleEnd} onChange={(e) => hero({ titleEnd: e.target.value })} />
-                </div>
-                <p className="text-[11px] text-brand-muted mt-1">The middle part is shown in green italics.</p>
-              </Field>
+              <TextAreaField label="Headline" rows={2} value={data.hero.title} onChange={(v) => hero({ title: v })} />
               <TextAreaField label="Content (subtitle)" value={data.hero.subtitle} onChange={(v) => hero({ subtitle: v })} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <TextField label="Button text" value={data.hero.ctaText} onChange={(v) => hero({ ctaText: v })} hint="Leave empty to hide the button." />
@@ -171,30 +162,6 @@ export function HomepageEditor() {
                 <TextField label="Second button text" value={data.hero.secondaryCtaText} onChange={(v) => hero({ secondaryCtaText: v })} hint="Outlined button. Empty hides it." />
                 <LinkField label="Second button link" value={data.hero.secondaryCtaHref} onChange={(v) => hero({ secondaryCtaHref: v })} />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <TextField label="Image card: small label" value={data.hero.cardLabel} onChange={(v) => hero({ cardLabel: v })} />
-                <TextField label="Image card: title" value={data.hero.cardTitle} onChange={(v) => hero({ cardTitle: v })} hint="Empty hides the card." />
-                <LinkField label="Image card: link" value={data.hero.cardHref} onChange={(v) => hero({ cardHref: v })} />
-              </div>
-              <TextField
-                label="Popular topics (comma separated)"
-                value={data.hero.popularTags.join(", ")}
-                onChange={(v) => hero({ popularTags: v.split(",").map((t) => t.trim()).filter(Boolean) })}
-              />
-              <ListEditor
-                items={data.hero.stats}
-                onChange={(stats) => hero({ stats })}
-                newItem={() => ({ value: "", label: "" })}
-                itemLabel="Number"
-                addLabel="Add a number"
-                summary={(s) => `${s.value} ${s.label}`}
-                renderItem={(s, update) => (
-                  <div className="grid grid-cols-[110px_1fr] gap-3">
-                    <TextField label="Value" value={s.value} onChange={(v) => update({ value: v })} placeholder="50+" />
-                    <TextField label="Label" value={s.label} onChange={(v) => update({ label: v })} placeholder="Wellness Guides" />
-                  </div>
-                )}
-              />
             </SectionCard>
 
             {/* Category cards */}
@@ -230,12 +197,6 @@ export function HomepageEditor() {
                 <TextField label="“View all” text" value={data.latestSection.linkText} onChange={(v) => latest({ linkText: v })} hint="Empty hides it." />
                 <LinkField label="“View all” link" value={data.latestSection.linkHref} onChange={(v) => latest({ linkHref: v })} />
               </div>
-              <Toggle
-                label="Show the sidebar"
-                hint="Edit the sidebar under Appearance → Sidebar."
-                checked={data.latestSection.showSidebar}
-                onChange={(v) => latest({ showSidebar: v })}
-              />
               <CategoryPicker
                 label="Only list posts from these categories"
                 hint="Show all = the newest posts from every category."

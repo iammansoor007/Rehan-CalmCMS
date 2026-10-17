@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, ChevronDown } from "lucide-react";
-import { SiteConfig, NavigationContent, Article } from "@/types/cms";
+import { SiteConfig, NavigationContent, Article, MenuItem } from "@/types/cms";
 import { SearchModal } from "../ui/SearchModal";
 import { MobileDrawer } from "./MobileDrawer";
 
@@ -16,9 +16,59 @@ interface HeaderProps {
 
 /** Underline-on-hover nav link, as in the original design. */
 const linkCls = (active: boolean) =>
-  `relative py-1.5 text-[0.95rem] font-medium transition-colors after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-0.5 after:rounded-sm after:bg-primary after:transition-all after:duration-300 hover:text-primary hover:after:w-full ${
+  `relative py-1.5 whitespace-nowrap text-[0.95rem] font-medium transition-colors after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-0.5 after:rounded-sm after:bg-primary after:transition-all after:duration-300 hover:text-primary hover:after:w-full ${
     active ? "text-primary after:w-full" : "text-brand-dark after:w-0"
   }`;
+
+/** Children and grandchildren of a menu entry as one indented list for the dropdown. */
+function dropdownEntries(items: MenuItem[] | undefined, depth = 0): { item: MenuItem; depth: number }[] {
+  return (items || []).flatMap((item) => [{ item, depth }, ...dropdownEntries(item.children, depth + 1)]);
+}
+
+const isCurrent = (item: MenuItem, pathname: string | null): boolean =>
+  !!pathname &&
+  ((item.href === "/" ? pathname === "/" : pathname === item.href || pathname.startsWith(`${item.href}/`)) ||
+    (item.children || []).some((c) => isCurrent(c, pathname)));
+
+function NavEntry({ item, pathname }: { item: MenuItem; pathname: string | null }) {
+  const external = item.newTab ? { target: "_blank", rel: "noopener noreferrer" } : {};
+  const entries = dropdownEntries(item.children);
+
+  if (entries.length === 0) {
+    return (
+      <li>
+        <Link href={item.href} {...external} className={linkCls(isCurrent(item, pathname))}>
+          {item.label}
+        </Link>
+      </li>
+    );
+  }
+
+  return (
+    <li className="relative group">
+      <Link href={item.href} {...external} className={`inline-flex items-center gap-1 ${linkCls(isCurrent(item, pathname))}`}>
+        {item.label}
+        <ChevronDown className="w-3 h-3 transition-transform duration-[250ms] group-hover:rotate-180" strokeWidth={2.5} />
+      </Link>
+      <ul className="absolute top-full -left-3 min-w-[220px] py-2.5 bg-white border border-brand-border rounded-2xl shadow-card opacity-0 invisible translate-y-3 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-[1100]">
+        {entries.map(({ item: child, depth }, i) => (
+          <li key={`${child.id}-${i}`}>
+            <Link
+              href={child.href}
+              target={child.newTab ? "_blank" : undefined}
+              rel={child.newTab ? "noopener noreferrer" : undefined}
+              className="block px-5 py-2.5 text-[0.92rem] font-medium text-brand-dark transition-all hover:bg-primary-light hover:text-primary-dark"
+              style={depth ? { paddingLeft: 20 + depth * 14 } : undefined}
+            >
+              {depth ? "– " : ""}
+              {child.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </li>
+  );
+}
 
 export function Header({ siteConfig, navigation, articles }: HeaderProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -35,8 +85,6 @@ export function Header({ siteConfig, navigation, articles }: HeaderProps) {
     window.addEventListener("calmtouch:search", open);
     return () => window.removeEventListener("calmtouch:search", open);
   }, []);
-
-  const inCategories = pathname?.startsWith("/category") || false;
 
   return (
     <>
@@ -59,57 +107,15 @@ export function Header({ siteConfig, navigation, articles }: HeaderProps) {
             )}
             <div className="flex flex-col">
               <span className="font-heading font-bold text-[1.4rem] text-brand-dark leading-[1.1]">{siteConfig.brandName}</span>
-              <span className="text-[0.72rem] font-medium text-brand-muted tracking-[0.02em]">{siteConfig.tagline}</span>
+              <span className="whitespace-nowrap text-[0.72rem] font-medium text-brand-muted tracking-[0.02em] md:max-lg:hidden">{siteConfig.tagline}</span>
             </div>
           </Link>
 
           {/* Desktop nav */}
           <nav className="hidden md:block">
-            <ul className="flex items-center gap-8">
-              <li>
-                <Link href="/" className={linkCls(pathname === "/")}>
-                  {navigation.homeLabel}
-                </Link>
-              </li>
-
-              {navigation.categoriesMenu.visible && (
-                <li className="relative group">
-                  <Link
-                    href={navigation.categoriesMenu.items[0]?.href || "/category/all"}
-                    className={`inline-flex items-center gap-1 ${linkCls(inCategories)}`}
-                  >
-                    {navigation.categoriesMenu.label}
-                    <ChevronDown className="w-3 h-3 transition-transform duration-[250ms] group-hover:rotate-180" strokeWidth={2.5} />
-                  </Link>
-                  <ul className="absolute top-full -left-3 min-w-[220px] py-2.5 bg-white border border-brand-border rounded-2xl shadow-card opacity-0 invisible translate-y-3 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 z-[1100]">
-                    {navigation.categoriesMenu.items.map((cat) => (
-                      <li key={cat.slug}>
-                        {cat.slug === "all" && <div className="h-px bg-brand-borderLight my-1.5" />}
-                        <Link
-                          href={cat.href}
-                          className="block px-5 py-2.5 text-[0.92rem] font-medium text-brand-dark transition-all hover:bg-primary-light hover:text-primary-dark hover:pl-6"
-                          style={cat.depth ? { paddingLeft: 20 + cat.depth * 14 } : undefined}
-                        >
-                          {cat.depth ? "– " : ""}
-                          {cat.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              )}
-
-              {navigation.links.map((item) => (
-                <li key={`${item.href}-${item.label}`}>
-                  <Link
-                    href={item.href}
-                    target={item.newTab ? "_blank" : undefined}
-                    rel={item.newTab ? "noopener noreferrer" : undefined}
-                    className={linkCls(pathname === item.href)}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
+            <ul className="flex items-center gap-5 lg:gap-8">
+              {navigation.items.map((item, i) => (
+                <NavEntry key={`${item.id}-${i}`} item={item} pathname={pathname} />
               ))}
             </ul>
           </nav>

@@ -1,20 +1,20 @@
 import React from "react";
 import Link from "next/link";
 import { Facebook, Instagram, Linkedin, Mail, Twitter } from "lucide-react";
-import { SiteConfig, FooterContent, NavItem } from "@/types/cms";
+import { SiteConfig, FooterContent, MenuItem } from "@/types/cms";
 
 interface FooterProps {
   siteConfig: SiteConfig;
   footerContent: FooterContent;
 }
 
-function LinkColumn({ title, links }: { title: string; links: NavItem[] }) {
+function LinkColumn({ title, links }: { title: string; links: MenuItem[] }) {
   return (
     <div>
       {title && <h4 className="font-heading font-semibold text-[0.98rem] text-white mb-5">{title}</h4>}
       <ul className="flex flex-col gap-3">
         {links.map((link) => (
-          <li key={`${link.href}-${link.label}`}>
+          <li key={link.id}>
             <Link
               href={link.href}
               target={link.newTab ? "_blank" : undefined}
@@ -41,13 +41,15 @@ export function Footer({ siteConfig, footerContent }: FooterProps) {
     { href: social.email ? `mailto:${social.email}` : "", label: "Email", Icon: Mail },
   ].filter((s) => !!s.href);
 
-  const showCategories = footerContent.showCategories && footerContent.categoryLinks.length > 0;
-  const showLegal = footerContent.legalLinks.length > 0 || !!footerContent.badgeText;
+  const columns = footerContent.columns;
 
   return (
     <footer className="bg-brand-dark text-[#C5D0CB] pt-20 pb-10 text-[0.9rem]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr] gap-10 mb-[60px]">
+        <div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:[grid-template-columns:2fr_repeat(var(--cols),minmax(0,1fr))] gap-10 mb-[60px]"
+          style={{ "--cols": Math.max(columns.length, 1) } as React.CSSProperties}
+        >
           {/* Brand */}
           <div className="flex flex-col gap-4 lg:pr-5">
             <Link href="/" className="flex items-center gap-2.5">
@@ -89,22 +91,16 @@ export function Footer({ siteConfig, footerContent }: FooterProps) {
             )}
           </div>
 
-          {footerContent.quickLinks.length > 0 && (
-            <LinkColumn title={footerContent.quickLinksTitle} links={footerContent.quickLinks} />
-          )}
-
-          {showCategories && <LinkColumn title={footerContent.categoriesTitle} links={footerContent.categoryLinks} />}
-
-          {showLegal && (
-            <div>
-              <LinkColumn title={footerContent.legalTitle} links={footerContent.legalLinks} />
-              {footerContent.badgeText && (
+          {columns.map((col, i) => (
+            <div key={col.id}>
+              <LinkColumn title={col.title} links={col.items} />
+              {i === columns.length - 1 && footerContent.badgeText && (
                 <span className="inline-block mt-4 px-3 py-1 rounded-full bg-white/10 text-white text-xs font-medium">
                   {footerContent.badgeText}
                 </span>
               )}
             </div>
-          )}
+          ))}
         </div>
 
         <div className="h-px bg-white/[0.08] mb-[30px]" />

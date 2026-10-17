@@ -1,13 +1,23 @@
 "use client";
 
-import React from "react";
-import { FooterSettings, NavItem, NavigationSettings, SidebarSettings, TemplateSettings } from "@/types/cms";
+import React, { useState } from "react";
+import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
+import {
+  FooterColumn,
+  FooterSettings,
+  MenuItem,
+  NavigationSettings,
+  SidebarSettings,
+  TemplateSettings,
+} from "@/types/cms";
 import { ContentPage } from "./ContentPage";
+import { useConfirm } from "./ConfirmDialog";
+import { MenuAddPanel, MenuCard, MenuFrame, MenuStructure, newMenuId } from "./MenuBuilder";
+import { inputCls, labelCls, secondaryBtnCls } from "./shared";
 import {
   CategoryPicker,
   ImageField,
   LinkField,
-  ListEditor,
   NumberField,
   SectionCard,
   TextAreaField,
@@ -16,89 +26,32 @@ import {
   sectionPatcher,
 } from "./fields";
 
-/** Editor for a list of links: label, address, show/hide, open in new tab. */
-function LinkList({
-  items,
-  onChange,
-  addLabel = "Add a link",
-}: {
-  items: NavItem[];
-  onChange: (items: NavItem[]) => void;
-  addLabel?: string;
-}) {
-  return (
-    <ListEditor
-      items={items}
-      onChange={onChange}
-      newItem={() => ({ label: "", href: "", visible: true, newTab: false })}
-      itemLabel="Link"
-      addLabel={addLabel}
-      summary={(i) => `${i.label}${i.visible === false ? " (hidden)" : ""}`}
-      renderItem={(item, update) => (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <TextField label="Text" value={item.label} onChange={(v) => update({ label: v })} />
-            <LinkField label="Link" value={item.href} onChange={(v) => update({ href: v })} />
-          </div>
-          <div className="flex flex-wrap gap-x-8 gap-y-2">
-            <Toggle label="Show on site" checked={item.visible !== false} onChange={(v) => update({ visible: v })} />
-            <Toggle label="Open in new tab" checked={!!item.newTab} onChange={(v) => update({ newTab: v })} />
-          </div>
-        </>
-      )}
-    />
-  );
-}
-
 // ---------------------------------------------------------------------------
-// Header navigation
+// Header menu (WordPress: Appearance → Menus)
 // ---------------------------------------------------------------------------
 
 export function NavigationEditor() {
   return (
     <ContentPage<NavigationSettings>
       contentKey="navigation"
-      title="Navigation Menu"
-      description="The menu bar at the top of every page: link names and addresses, the categories dropdown, search and an optional button."
+      title="Menus — Header"
+      description="Build the menu at the top of every page the WordPress way: add pages, posts, categories or custom links on the left, then drag them into order. Drag an item under another one (or use the arrows) to make a dropdown."
       viewHref="/"
+      wide
     >
       {({ data, setData }) => {
-        const menu = sectionPatcher(setData, "categoriesMenu");
         const cta = sectionPatcher(setData, "cta");
+        const setItems = (items: MenuItem[]) => setData((d) => ({ ...d, items }));
         return (
-          <>
-            <SectionCard title="Menu links" description="Shown after “Home” and the categories dropdown" defaultOpen>
-              <TextField
-                label="First link text (goes to the homepage)"
-                value={data.homeLabel}
-                onChange={(v) => setData((d) => ({ ...d, homeLabel: v }))}
-              />
-              <LinkList items={data.links} onChange={(links) => setData((d) => ({ ...d, links }))} />
-              <p className="text-[11px] text-brand-muted">
-                Tip: type “/” in the link box to pick from your pages, categories and posts.
-              </p>
-            </SectionCard>
-
-            <SectionCard
-              title="Categories dropdown"
-              description="The menu that lists your categories"
-              visible={data.categoriesMenu.visible}
-              onVisibleChange={(v) => menu({ visible: v })}
-              defaultOpen
+          <MenuFrame panel={<MenuAddPanel onAdd={(added) => setData((d) => ({ ...d, items: [...d.items, ...added] }))} />}>
+            <MenuCard
+              title="Menu structure"
+              help="Drag items by the handle to reorder. Use the arrows to move an item up/down or make it a sub-item (dropdown). Click an item's name to edit its label and link."
             >
-              <TextField label="Menu name" value={data.categoriesMenu.label} onChange={(v) => menu({ label: v })} />
-              <CategoryPicker value={data.categoriesMenu.categorySlugs} onChange={(v) => menu({ categorySlugs: v })} />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-                <Toggle
-                  label="Add an “all categories” link at the end"
-                  checked={data.categoriesMenu.showAllLink}
-                  onChange={(v) => menu({ showAllLink: v })}
-                />
-                <TextField label="“All” link text" value={data.categoriesMenu.allLabel} onChange={(v) => menu({ allLabel: v })} />
-              </div>
-            </SectionCard>
+              <MenuStructure items={data.items} onChange={setItems} maxDepth={2} />
+            </MenuCard>
 
-            <SectionCard title="Search & button" description="Search icon and an optional call-to-action button">
+            <SectionCard title="Menu settings" description="Search icon and an optional call-to-action button" defaultOpen>
               <Toggle
                 label="Show the search icon"
                 checked={data.showSearch}
@@ -110,7 +63,7 @@ export function NavigationEditor() {
                 <LinkField label="Button link" value={data.cta.href} onChange={(v) => cta({ href: v })} />
               </div>
             </SectionCard>
-          </>
+          </MenuFrame>
         );
       }}
     </ContentPage>
@@ -118,21 +71,80 @@ export function NavigationEditor() {
 }
 
 // ---------------------------------------------------------------------------
-// Footer
+// Footer menus
 // ---------------------------------------------------------------------------
 
+const MAX_FOOTER_COLUMNS = 5;
+
 export function FooterEditor() {
+  const confirm = useConfirm();
+  const [target, setTarget] = useState("");
+
   return (
     <ContentPage<FooterSettings>
       contentKey="footer"
-      title="Footer"
-      description="The dark section at the bottom of every page. Social media links are set under Branding & Logo."
+      title="Menus — Footer"
+      description="The dark section at the bottom of every page. Each column is its own menu: add items from the left into the column you pick, then drag them into order. Social media links are set under Branding & Logo."
       viewHref="/"
+      wide
     >
       {({ data, setData }) => {
         const set = (patch: Partial<FooterSettings>) => setData((d) => ({ ...d, ...patch }));
+        const updateColumn = (id: string, patch: Partial<FooterColumn>) =>
+          setData((d) => ({ ...d, columns: d.columns.map((c) => (c.id === id ? { ...c, ...patch } : c)) }));
+        const moveColumn = (index: number, by: number) =>
+          setData((d) => {
+            const columns = [...d.columns];
+            const [col] = columns.splice(index, 1);
+            columns.splice(index + by, 0, col);
+            return { ...d, columns };
+          });
+        const addColumn = () =>
+          setData((d) => ({
+            ...d,
+            columns: [...d.columns, { id: newMenuId(), title: "New column", items: [] }],
+          }));
+        const removeColumn = async (col: FooterColumn) => {
+          const ok = await confirm({
+            title: `Delete the “${col.title || "untitled"}” column?`,
+            message: "The column and the links in it are removed from the footer once you save.",
+            confirmLabel: "Delete column",
+            danger: true,
+          });
+          if (ok) setData((d) => ({ ...d, columns: d.columns.filter((c) => c.id !== col.id) }));
+        };
+
+        const addTo = data.columns.some((c) => c.id === target) ? target : data.columns[0]?.id || "";
+        const addItems = (added: MenuItem[]) =>
+          setData((d) => {
+            if (d.columns.length === 0) {
+              return { ...d, columns: [{ id: newMenuId(), title: "Links", items: added }] };
+            }
+            const id = d.columns.some((c) => c.id === target) ? target : d.columns[0].id;
+            return { ...d, columns: d.columns.map((c) => (c.id === id ? { ...c, items: [...c.items, ...added] } : c)) };
+          });
+
         return (
-          <>
+          <MenuFrame
+            panel={
+              <MenuAddPanel
+                onAdd={addItems}
+                header={
+                  <div>
+                    <label className={labelCls}>Add items to column</label>
+                    <select value={addTo} onChange={(e) => setTarget(e.target.value)} className={inputCls}>
+                      {data.columns.length === 0 && <option value="">(a column is created for you)</option>}
+                      {data.columns.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.title || "Untitled column"}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                }
+              />
+            }
+          >
             <SectionCard
               title="About text"
               description="Logo, description and social icons"
@@ -155,36 +167,74 @@ export function FooterEditor() {
               />
             </SectionCard>
 
-            <SectionCard title="First link column" description="Quick links" defaultOpen>
-              <TextField label="Column heading" value={data.quickLinksTitle} onChange={(v) => set({ quickLinksTitle: v })} />
-              <LinkList items={data.quickLinks} onChange={(quickLinks) => set({ quickLinks })} />
-            </SectionCard>
+            {data.columns.map((col, i) => (
+              <MenuCard
+                key={col.id}
+                title={`Column ${i + 1}`}
+                action={
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      type="button"
+                      aria-label="Move column up"
+                      title="Move column up"
+                      disabled={i === 0}
+                      onClick={() => moveColumn(i, -1)}
+                      className="w-7 h-7 rounded flex items-center justify-center text-brand-muted hover:bg-brand-bgLight disabled:opacity-30"
+                    >
+                      <ArrowUp className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Move column down"
+                      title="Move column down"
+                      disabled={i === data.columns.length - 1}
+                      onClick={() => moveColumn(i, 1)}
+                      className="w-7 h-7 rounded flex items-center justify-center text-brand-muted hover:bg-brand-bgLight disabled:opacity-30"
+                    >
+                      <ArrowDown className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Delete column"
+                      title="Delete column"
+                      onClick={() => removeColumn(col)}
+                      className="w-7 h-7 rounded flex items-center justify-center text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                }
+              >
+                <TextField label="Column heading" value={col.title} onChange={(v) => updateColumn(col.id, { title: v })} />
+                <MenuStructure
+                  items={col.items}
+                  onChange={(items) => updateColumn(col.id, { items })}
+                  maxDepth={0}
+                  emptyText="No links in this column yet. Pick this column on the left, then add items."
+                />
+              </MenuCard>
+            ))}
 
-            <SectionCard
-              title="Categories column"
-              description="List of category links"
-              visible={data.showCategories}
-              onVisibleChange={(v) => set({ showCategories: v })}
+            <button
+              type="button"
+              onClick={addColumn}
+              disabled={data.columns.length >= MAX_FOOTER_COLUMNS}
+              className={`${secondaryBtnCls} w-full !py-3`}
             >
-              <TextField label="Column heading" value={data.categoriesTitle} onChange={(v) => set({ categoriesTitle: v })} />
-              <CategoryPicker
-                hint="Automatic shows the first six categories."
-                value={data.categorySlugs}
-                onChange={(categorySlugs) => set({ categorySlugs })}
-              />
-            </SectionCard>
+              <Plus className="w-4 h-4" />
+              <span>
+                {data.columns.length >= MAX_FOOTER_COLUMNS
+                  ? `Up to ${MAX_FOOTER_COLUMNS} columns fit in the footer`
+                  : "Add a column"}
+              </span>
+            </button>
 
-            <SectionCard title="Information column" description="Legal links and badge">
-              <TextField label="Column heading" value={data.legalTitle} onChange={(v) => set({ legalTitle: v })} />
-              <LinkList items={data.legalLinks} onChange={(legalLinks) => set({ legalLinks })} />
+            <SectionCard title="Badge & bottom bar" description="Pill under the last column and the copyright line">
               <TextField label="Badge text" value={data.badgeText} onChange={(v) => set({ badgeText: v })} hint="Empty hides the badge." />
-            </SectionCard>
-
-            <SectionCard title="Bottom bar" description="Copyright line">
               <TextField label="Left text" value={data.copyright} onChange={(v) => set({ copyright: v })} />
               <TextField label="Right text" value={data.bottomText} onChange={(v) => set({ bottomText: v })} hint="Empty hides it." />
             </SectionCard>
-          </>
+          </MenuFrame>
         );
       }}
     </ContentPage>

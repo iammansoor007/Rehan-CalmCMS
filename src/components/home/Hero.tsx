@@ -9,8 +9,6 @@ interface HeroProps {
 /** Full-width photo hero with dark overlay, centered text and two buttons (matches the original design). */
 export function Hero({ hero }: HeroProps) {
   const image = hero.image || "/assets/images/hero.png";
-  const title = [hero.titleStart, hero.titleHighlight, hero.titleEnd].filter(Boolean).join(" ");
-  const hasStats = hero.stats.some((s) => s.value || s.label);
 
   return (
     <section
@@ -34,8 +32,8 @@ export function Hero({ hero }: HeroProps) {
             </span>
           )}
 
-          <h1 className="font-heading font-bold text-4xl sm:text-5xl lg:text-[3.5rem] text-white leading-[1.18] tracking-[-0.025em] mb-[22px] [text-shadow:0_3px_16px_rgba(0,0,0,0.35)]">
-            {title}
+          <h1 className="whitespace-pre-line font-heading font-bold text-4xl sm:text-5xl lg:text-[3.5rem] text-white leading-[1.18] tracking-[-0.025em] mb-[22px] [text-shadow:0_3px_16px_rgba(0,0,0,0.35)]">
+            {hero.title}
           </h1>
 
           {hero.subtitle && (
@@ -62,46 +60,6 @@ export function Hero({ hero }: HeroProps) {
               </Link>
             )}
           </div>
-
-          {hero.popularTags.length > 0 && (
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
-              {hero.popularTags.map((tag) => (
-                <Link
-                  key={tag}
-                  href="/category/all"
-                  className="px-3.5 py-1 rounded-full bg-white/15 text-white/90 text-xs font-medium border border-white/30 hover:bg-white hover:text-brand-dark transition-colors"
-                >
-                  {tag}
-                </Link>
-              ))}
-            </div>
-          )}
-
-          {hasStats && (
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-10 text-white">
-              {hero.stats.map((s) => (
-                <div key={s.label + s.value}>
-                  <div className="font-heading font-bold text-3xl">{s.value}</div>
-                  <div className="text-xs text-white/80 font-medium mt-0.5">{s.label}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {hero.cardTitle && (
-            <Link
-              href={hero.cardHref || "#"}
-              className="mt-8 inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/90 text-left hover:bg-white transition-colors"
-            >
-              <span>
-                {hero.cardLabel && (
-                  <span className="block text-[11px] font-bold uppercase tracking-wider text-primary">{hero.cardLabel}</span>
-                )}
-                <span className="text-sm font-semibold text-brand-dark">{hero.cardTitle}</span>
-              </span>
-              <span className="text-primary">→</span>
-            </Link>
-          )}
         </div>
       </div>
     </section>

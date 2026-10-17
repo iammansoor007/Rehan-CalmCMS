@@ -14,6 +14,8 @@ interface ContentPageProps<T> {
   description: string;
   /** Public URL to open after saving. */
   viewHref?: string;
+  /** Use the full content width (menu builders need two columns). */
+  wide?: boolean;
   children: (ctx: { data: T; setData: React.Dispatch<React.SetStateAction<T>> }) => React.ReactNode;
 }
 
@@ -26,6 +28,7 @@ export function ContentPage<T>({
   title,
   description,
   viewHref,
+  wide,
   children,
 }: ContentPageProps<T>) {
   const { showToast } = useToast();
@@ -100,7 +103,7 @@ export function ContentPage<T>({
   };
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className={`space-y-6 ${wide ? "max-w-7xl" : "max-w-5xl"}`}>
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
           <h1 className="font-heading font-bold text-2xl text-brand-dark mb-1">{title}</h1>

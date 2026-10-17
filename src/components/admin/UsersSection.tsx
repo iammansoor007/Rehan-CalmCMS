@@ -5,7 +5,7 @@ import { Edit, Eye, EyeOff, KeyRound, Link2, Plus, Save, Trash2, X } from "lucid
 import { CmsUser } from "@/types/cms";
 import { ROLES, Role, roleLabel } from "@/lib/permissions";
 import { useToast } from "@/components/layout/Toast";
-import { useConfirm } from "./ConfirmDialog";
+import { useConfirm, usePrompt } from "./ConfirmDialog";
 import {
   api,
   cardCls,
@@ -39,6 +39,7 @@ function generatePassword(): string {
 export function UsersSection({ users, meUsername, onChanged }: UsersSectionProps) {
   const { showToast } = useToast();
   const confirm = useConfirm();
+  const prompt = usePrompt();
 
   // `editing` holds the id of the user being edited (null = adding a new one).
   const [editing, setEditing] = useState<CmsUser | null>(null);
@@ -121,7 +122,22 @@ export function UsersSection({ users, meUsername, onChanged }: UsersSectionProps
       await navigator.clipboard.writeText(res.data.url);
       showToast(`Reset link copied — send it to ${u.displayName}. It works once and expires in 1 hour.`);
     } catch {
-      window.prompt("Copy this reset link and send it to the user:", res.data.url);
+      const copied = await prompt({
+        title: "Reset link",
+        message: `Copy this link and send it to ${u.displayName}. It works once and expires in 1 hour.`,
+        defaultValue: res.data.url,
+        readOnly: true,
+        confirmLabel: "Copy link",
+        cancelLabel: "Close",
+      });
+      if (copied) {
+        try {
+          await navigator.clipboard.writeText(copied);
+          showToast("Reset link copied.");
+        } catch {
+          showToast("Select the link and press Ctrl+C to copy it.");
+        }
+      }
     }
   };
 

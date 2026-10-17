@@ -44,6 +44,7 @@ import {
   ChevronDown,
   KeyRound,
   ArrowLeft,
+  AlertCircle,
 } from "lucide-react";
 import { Capability, Role, can, roleLabel } from "@/lib/permissions";
 import { api } from "@/components/admin/shared";
@@ -95,6 +96,20 @@ interface Me {
 
 type CategoryRow = Category & { count?: number };
 
+/** Red, centered error shown inside the login / forgot / reset cards. */
+function AuthError({ message }: { message: string }) {
+  if (!message) return null;
+  return (
+    <div
+      role="alert"
+      className="flex items-center justify-center gap-2 text-center px-4 py-3 rounded-lg bg-red-50 border border-red-300 text-red-700 text-xs font-semibold"
+    >
+      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+      <span>{message}</span>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   // Auth state
   const [me, setMe] = useState<Me | null>(null);
@@ -102,6 +117,7 @@ export default function AdminPage() {
   const [loginPassword, setLoginPassword] = useState("");
   const [authLoading, setAuthLoading] = useState(true);
   const [loginBusy, setLoginBusy] = useState(false);
+  const [loginError, setLoginError] = useState("");
   // "Forgot password?" and the reset-link flow (/admin?reset=TOKEN)
   const [loginView, setLoginView] = useState<"login" | "forgot" | "reset">("login");
   const [forgotAccount, setForgotAccount] = useState("");
@@ -174,6 +190,7 @@ export default function AdminPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginBusy(true);
+    setLoginError("");
     try {
       const res = await fetch("/api/admin/auth", {
         method: "POST",
@@ -188,10 +205,10 @@ export default function AdminPage() {
         showToast(`Welcome back, ${data.user.displayName}!`);
         loadAllData(data.user.role);
       } else {
-        showToast(data.error || "Invalid credentials. Please verify your login details.");
+        setLoginError(data.error || "Invalid username or password. Please check your details and try again.");
       }
     } catch {
-      showToast("Authentication server error");
+      setLoginError("Could not reach the server. Please try again.");
     } finally {
       setLoginBusy(false);
     }
@@ -200,19 +217,21 @@ export default function AdminPage() {
   const handleForgot = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginBusy(true);
+    setLoginError("");
     const res = await api<{ message: string }>("/api/admin/auth/forgot", {
       method: "POST",
       body: JSON.stringify({ account: forgotAccount }),
     });
     setLoginBusy(false);
     if (res.ok && res.data) setForgotDone(res.data.message);
-    else showToast(res.error);
+    else setLoginError(res.error);
   };
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError("");
     if (resetPassword !== resetConfirm) {
-      showToast("The two passwords do not match.");
+      setLoginError("The two passwords do not match.");
       return;
     }
     setLoginBusy(true);
@@ -222,7 +241,7 @@ export default function AdminPage() {
     });
     setLoginBusy(false);
     if (!res.ok) {
-      showToast(res.error);
+      setLoginError(res.error);
       return;
     }
     showToast("Password updated! You are now logged in.");
@@ -405,11 +424,15 @@ export default function AdminPage() {
                     required
                     autoComplete="username"
                     value={forgotAccount}
-                    onChange={(e) => setForgotAccount(e.target.value)}
+                    onChange={(e) => {
+                      setForgotAccount(e.target.value);
+                      setLoginError("");
+                    }}
                     className={inputCls}
                   />
                 </div>
               )}
+              <AuthError message={loginError} />
               {!forgotDone && (
                 <button
                   type="submit"
@@ -424,6 +447,7 @@ export default function AdminPage() {
                 type="button"
                 onClick={() => {
                   setLoginView("login");
+                  setLoginError("");
                   setForgotDone("");
                 }}
                 className="w-full text-xs font-semibold text-brand-muted hover:text-brand-dark flex items-center justify-center gap-1"
@@ -443,7 +467,10 @@ export default function AdminPage() {
                   minLength={8}
                   autoComplete="new-password"
                   value={resetPassword}
-                  onChange={(e) => setResetPassword(e.target.value)}
+                  onChange={(e) => {
+                    setResetPassword(e.target.value);
+                    setLoginError("");
+                  }}
                   className={inputCls}
                 />
               </div>
@@ -457,10 +484,14 @@ export default function AdminPage() {
                   minLength={8}
                   autoComplete="new-password"
                   value={resetConfirm}
-                  onChange={(e) => setResetConfirm(e.target.value)}
+                  onChange={(e) => {
+                    setResetConfirm(e.target.value);
+                    setLoginError("");
+                  }}
                   className={inputCls}
                 />
               </div>
+              <AuthError message={loginError} />
               <button
                 type="submit"
                 disabled={loginBusy}
@@ -471,7 +502,10 @@ export default function AdminPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setLoginView("login")}
+                onClick={() => {
+                  setLoginView("login");
+                  setLoginError("");
+                }}
                 className="w-full text-xs font-semibold text-brand-muted hover:text-brand-dark flex items-center justify-center gap-1"
               >
                 <ArrowLeft className="w-3.5 h-3.5" /> Back to log in
@@ -513,8 +547,13 @@ export default function AdminPage() {
                 required
                 autoComplete="username"
                 value={loginUsername}
-                onChange={(e) => setLoginUsername(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-brand-border text-sm text-brand-dark focus:outline-none focus:border-primary"
+                onChange={(e) => {
+                  setLoginUsername(e.target.value);
+                  setLoginError("");
+                }}
+                className={`w-full px-3.5 py-2.5 rounded-lg border text-sm text-brand-dark focus:outline-none ${
+                  loginError ? "border-red-400 focus:border-red-500" : "border-brand-border focus:border-primary"
+                }`}
               />
             </div>
 
@@ -527,10 +566,17 @@ export default function AdminPage() {
                 required
                 autoComplete="current-password"
                 value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-brand-border text-sm text-brand-dark focus:outline-none focus:border-primary"
+                onChange={(e) => {
+                  setLoginPassword(e.target.value);
+                  setLoginError("");
+                }}
+                className={`w-full px-3.5 py-2.5 rounded-lg border text-sm text-brand-dark focus:outline-none ${
+                  loginError ? "border-red-400 focus:border-red-500" : "border-brand-border focus:border-primary"
+                }`}
               />
             </div>
+
+            <AuthError message={loginError} />
 
             <button
               type="submit"
@@ -545,6 +591,7 @@ export default function AdminPage() {
               type="button"
               onClick={() => {
                 setForgotAccount(loginUsername);
+                setLoginError("");
                 setLoginView("forgot");
               }}
               className="w-full text-xs font-semibold text-primary hover:underline"
@@ -593,6 +640,10 @@ export default function AdminPage() {
         onMediaChanged: reloadMedia,
         categories,
         linkSuggestions,
+        pages: pages.filter((p) => p.status !== "draft").map((p) => ({ title: p.title, slug: p.slug })),
+        posts: articles
+          .filter((a) => (a.status ?? "published") === "published")
+          .map((a) => ({ title: a.title, slug: a.slug })),
       }}
     >
     <ConfirmProvider>
@@ -815,13 +866,13 @@ export default function AdminPage() {
                 />
                 <SideItem
                   icon={<MenuIcon className="w-4 h-4" />}
-                  label="Navigation Menu"
+                  label="Menus: Header"
                   active={currentSection === "navigation"}
                   onClick={() => setCurrentSection("navigation")}
                 />
                 <SideItem
                   icon={<PanelBottom className="w-4 h-4" />}
-                  label="Footer"
+                  label="Menus: Footer"
                   active={currentSection === "footer"}
                   onClick={() => setCurrentSection("footer")}
                 />

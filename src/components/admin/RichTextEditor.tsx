@@ -1,6 +1,7 @@
 "use client";
 
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { usePrompt } from "./ConfirmDialog";
 import {
   Bold,
   Italic,
@@ -106,6 +107,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     { value, onChange, onRequestImage, minHeight = 380, placeholder = "Start writing your post…" },
     ref
   ) {
+    const prompt = usePrompt();
     const [mode, setMode] = useState<"visual" | "html">("visual");
     const editorRef = useRef<HTMLDivElement>(null);
     const lastHtml = useRef<string | null>(null);
@@ -167,10 +169,15 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       },
     }));
 
-    const addLink = () => {
+    const addLink = async () => {
       rememberSelection();
-      const input = window.prompt("Link URL (e.g. https://example.com or /about)");
-      if (!input) return;
+      const input = await prompt({
+        title: "Insert link",
+        label: "Link URL",
+        placeholder: "https://example.com or /about",
+        confirmLabel: "Insert link",
+      });
+      if (!input?.trim()) return;
       const url = /^(https?:|mailto:|tel:|\/|#)/i.test(input.trim()) ? input.trim() : `https://${input.trim()}`;
       restoreSelection();
       const sel = window.getSelection();

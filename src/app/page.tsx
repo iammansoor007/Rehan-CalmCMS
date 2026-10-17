@@ -4,7 +4,6 @@ import {
   getHomepageData,
   getCategories,
   getArticles,
-  getSidebarSettings,
   articlesInCategories,
 } from "@/lib/cms/client";
 import { pickCategories } from "@/lib/categoryTree";
@@ -15,7 +14,6 @@ import { GuidebookSection } from "@/components/home/GuidebookSection";
 import { TrustSection } from "@/components/home/TrustSection";
 import { NewsletterSection } from "@/components/home/NewsletterSection";
 import { ArticleCard } from "@/components/ui/ArticleCard";
-import { Sidebar } from "@/components/ui/Sidebar";
 import { CategoryTabs, BrowseTab } from "@/components/ui/CategoryTabs";
 import { HomeSectionId } from "@/types/cms";
 import Link from "next/link";
@@ -45,11 +43,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  const [homepage, categories, articles, sidebar] = await Promise.all([
+  const [homepage, categories, articles] = await Promise.all([
     getHomepageData(),
     getCategories(),
     getArticles(),
-    getSidebarSettings(),
   ]);
 
   // Saved order first; any section the saved order doesn't know about is appended.
@@ -81,7 +78,7 @@ export default async function HomePage() {
     hero: homepage.hero.visible ? <Hero hero={homepage.hero} /> : null,
 
     categories: homepage.categoriesSection.visible ? (
-      <CategoryBar categoriesSection={homepage.categoriesSection} categories={categories} articles={articles} />
+      <CategoryBar categoriesSection={homepage.categoriesSection} categories={categories} />
     ) : null,
 
     latest: latest.visible ? (
@@ -111,29 +108,15 @@ export default async function HomePage() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-            <div className={latest.showSidebar ? "lg:col-span-8" : "lg:col-span-12"}>
-              {latestArticles.length === 0 ? (
-                <p className="text-sm text-brand-muted">No articles to show yet.</p>
-              ) : (
-                <div
-                  className={`grid grid-cols-1 sm:grid-cols-2 gap-6 ${
-                    latest.showSidebar ? "" : "lg:grid-cols-4"
-                  }`}
-                >
-                  {latestArticles.map((article, idx) => (
-                    <ArticleCard key={article.slug} article={article} priority={idx === 0} />
-                  ))}
-                </div>
-              )}
+          {latestArticles.length === 0 ? (
+            <p className="text-sm text-brand-muted">No articles to show yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {latestArticles.map((article, idx) => (
+                <ArticleCard key={article.slug} article={article} priority={idx === 0} />
+              ))}
             </div>
-
-            {latest.showSidebar && (
-              <div className="lg:col-span-4">
-                <Sidebar recentArticles={articles} categories={categories} settings={sidebar} />
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </section>
     ) : null,

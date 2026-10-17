@@ -2,13 +2,49 @@
 
 import React, { useEffect } from "react";
 import Link from "next/link";
-import { SiteConfig, NavigationContent } from "@/types/cms";
+import { SiteConfig, NavigationContent, MenuItem } from "@/types/cms";
 
 interface MobileDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   siteConfig: SiteConfig;
   navigation: NavigationContent;
+}
+
+function DrawerLink({ item, onClose, className }: { item: MenuItem; onClose: () => void; className: string }) {
+  return (
+    <Link
+      href={item.href}
+      onClick={onClose}
+      target={item.newTab ? "_blank" : undefined}
+      rel={item.newTab ? "noopener noreferrer" : undefined}
+      className={className}
+    >
+      {item.label}
+    </Link>
+  );
+}
+
+function DrawerChildren({ items, onClose, depth = 0 }: { items: MenuItem[]; onClose: () => void; depth?: number }) {
+  return (
+    <ul className="flex flex-col gap-3 pt-3" style={depth ? { paddingLeft: 14 } : undefined}>
+      {items.map((child, i) => (
+        <li key={`${child.id}-${i}`}>
+          <span className="pl-3.5">
+            <span className="text-primary">{depth ? "– " : "• "}</span>
+            <DrawerLink
+              item={child}
+              onClose={onClose}
+              className="text-[0.95rem] font-medium text-brand-dark hover:text-primary transition-colors"
+            />
+          </span>
+          {child.children && child.children.length > 0 && (
+            <DrawerChildren items={child.children} onClose={onClose} depth={depth + 1} />
+          )}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export function MobileDrawer({ isOpen, onClose, siteConfig, navigation }: MobileDrawerProps) {
@@ -42,40 +78,10 @@ export function MobileDrawer({ isOpen, onClose, siteConfig, navigation }: Mobile
         </div>
 
         <ul className="flex flex-col gap-5">
-          <li>
-            <Link href="/" onClick={onClose} className={linkCls}>
-              {navigation.homeLabel}
-            </Link>
-          </li>
-
-          {navigation.categoriesMenu.visible && (
-            <li>
-              <span className="block px-0 pt-1 pb-1 text-xs font-bold uppercase tracking-[0.1em] text-primary">
-                {navigation.categoriesMenu.label}
-              </span>
-              <ul className="flex flex-col gap-3 pt-2">
-                {navigation.categoriesMenu.items.map((cat) => (
-                  <li key={cat.slug} style={cat.depth ? { paddingLeft: cat.depth * 14 } : undefined}>
-                    <Link href={cat.href} onClick={onClose} className="pl-3.5 text-[0.95rem] font-medium text-brand-dark hover:text-primary transition-colors">
-                      {cat.depth ? "– " : "• "}
-                      {cat.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </li>
-          )}
-
-          {navigation.links.map((item) => (
-            <li key={`${item.href}-${item.label}`}>
-              <Link
-                href={item.href}
-                onClick={onClose}
-                target={item.newTab ? "_blank" : undefined}
-                className={linkCls}
-              >
-                {item.label}
-              </Link>
+          {navigation.items.map((item, i) => (
+            <li key={`${item.id}-${i}`}>
+              <DrawerLink item={item} onClose={onClose} className={linkCls} />
+              {item.children && item.children.length > 0 && <DrawerChildren items={item.children} onClose={onClose} />}
             </li>
           ))}
 

@@ -7,11 +7,12 @@ import {
   AboutContent,
   ContactContent,
   FooterContent,
+  MenuItem,
   SidebarSettings,
   TemplateSettings,
 } from "@/types/cms";
 import { slugify } from "@/lib/slugify";
-import { descendantSlugs, pickCategories } from "@/lib/categoryTree";
+import { descendantSlugs } from "@/lib/categoryTree";
 import { ArticleModel } from "@/models/Article";
 import { CategoryModel } from "@/models/Category";
 import { SiteConfigModel } from "@/models/SiteConfig";
@@ -19,6 +20,7 @@ import { hasMongo } from "./backend";
 import { CmsError } from "./errors";
 import { readStore, updateStore } from "./store";
 import { addRedirect, getContent, renameCategorySlug } from "./content";
+import { categoriesData } from "./data/categories";
 import { foldLegacySeo } from "@/lib/seoShared";
 
 export { slugify };
@@ -87,30 +89,31 @@ export async function getTemplateSettings(): Promise<TemplateSettings> {
   return getContent("templates");
 }
 
-const visibleOnly = <T extends { visible?: boolean }>(items: T[]) =>
-  items.filter((item) => item.visible !== false);
+const categorySlugOf = (href: string) =>
+  /^\/category\/([^/?#]+)\/?(?:[?#].*)?$/.exec(href)?.[1] ?? null;
+
+/**
+ * Drops unlabelled entries and links to deleted categories; nesting is kept. A parent
+ * without a link of its own stays (as a plain dropdown title) while it has children.
+ */
+function cleanMenu(items: MenuItem[] | undefined, known: Set<string>): MenuItem[] {
+  return (items || [])
+    .filter((i) => i && i.label?.trim())
+    .filter((i) => {
+      if (i.type !== "category") return true;
+      const slug = categorySlugOf(i.href || "");
+      return slug === null || known.has(slug);
+    })
+    .map((i) => ({ ...i, children: cleanMenu(i.children, known) }))
+    .filter((i) => i.href || i.children.length > 0)
+    .map((i) => ({ ...i, href: i.href || "#" }));
+}
+
+const knownCategorySlugs = (categories: Category[]) => new Set(["all", ...categories.map((c) => c.slug)]);
 
 export async function getNavigation(): Promise<NavigationContent> {
   const [settings, categories] = await Promise.all([getContent("navigation"), getCategories()]);
-  const menu = settings.categoriesMenu;
-
-  const items = pickCategories(categories, menu.categorySlugs).map((c) => ({
-    label: c.name,
-    href: `/category/${c.slug}`,
-    slug: c.slug,
-    depth: c.depth,
-  }));
-  if (menu.showAllLink) {
-    items.push({ label: menu.allLabel, href: "/category/all", slug: "all", depth: 0 });
-  }
-
-  return {
-    homeLabel: settings.homeLabel,
-    links: visibleOnly(settings.links),
-    categoriesMenu: { visible: menu.visible, label: menu.label, items },
-    showSearch: settings.showSearch,
-    cta: settings.cta,
-  };
+  return { ...settings, items: cleanMenu(settings.items, knownCategorySlugs(categories)) };
 }
 
 export async function getFooterData(): Promise<FooterContent> {
@@ -119,18 +122,14 @@ export async function getFooterData(): Promise<FooterContent> {
     getSiteConfig(),
     getCategories(),
   ]);
-  const { categorySlugs, ...rest } = settings;
-  const picked = pickCategories(categories, categorySlugs);
+  const known = knownCategorySlugs(categories);
 
   return {
-    ...rest,
+    ...settings,
     brandDescription: settings.brandDescription || config.metaDescription,
-    quickLinks: visibleOnly(settings.quickLinks),
-    legalLinks: visibleOnly(settings.legalLinks),
-    categoryLinks: (categorySlugs.length ? picked : picked.slice(0, 6)).map((c) => ({
-      label: c.name,
-      href: `/category/${c.slug}`,
-    })),
+    columns: settings.columns
+      .map((col) => ({ ...col, items: cleanMenu(col.items, known) }))
+      .filter((col) => col.items.length > 0),
   };
 }
 
@@ -143,13 +142,18 @@ function mapCategory(c: {
   name: string;
   description?: string;
   parent?: string;
+  image?: string;
+  cardText?: string;
   seo?: unknown;
 }): Category {
+  const builtIn = categoriesData.find((d) => d.slug === c.slug);
   return {
     slug: c.slug,
     name: c.name,
     description: c.description || "",
     parent: c.parent || "",
+    image: c.image ?? builtIn?.image ?? "",
+    cardText: c.cardText ?? builtIn?.cardText ?? "",
     seo: (c.seo as Category["seo"]) || {},
   };
 }
@@ -213,6 +217,8 @@ export async function saveCategory(cat: Category, originalSlug?: string): Promis
     name,
     description: (cat.description || "").trim(),
     parent,
+    image: (cat.image || "").trim(),
+    cardText: (cat.cardText || "").trim(),
     seo: cat.seo || previous?.seo || {},
   };
   const renamed = previous && previous.name !== name;

@@ -60,6 +60,7 @@ const SAFE_HREF = /^(\/|#|https?:\/\/|mailto:|tel:)/i;
 function safeHref(value: string): string {
   const v = value.trim();
   if (!v || SAFE_HREF.test(v)) return v;
+  if (/^[^\s/:?#]+:\d+(?:[/?#]|$)/.test(v)) return `https://${v}`; // localhost:3000/a
   if (/^[a-z][a-z0-9+.-]*:/i.test(v)) return ""; // some other scheme, e.g. javascript:
   return `https://${v}`;
 }
@@ -72,6 +73,39 @@ function cleanLinks(value: unknown, key = ""): unknown {
   }
   if (typeof value === "string" && /href$/i.test(key)) return safeHref(value);
   return value;
+}
+
+const VERSION_FIELD = "_v";
+
+/**
+ * Bump a block's number here when its shape (or built-in design) changes. Edits saved
+ * under an older number are no longer layered over the new defaults; only the fields
+ * listed in KEEP_ON_UPGRADE survive. Without this, text saved from the old design would
+ * keep overriding the new one.
+ */
+const CONTENT_VERSIONS: Partial<Record<ContentKey, number>> = {
+  homepage: 2,
+  navigation: 2,
+  footer: 2,
+};
+
+const KEEP_ON_UPGRADE: Partial<Record<ContentKey, string[]>> = {
+  homepage: ["seo"],
+  navigation: ["showSearch", "cta"],
+  footer: ["visible"],
+};
+
+function currentShape(key: ContentKey, saved: unknown): unknown {
+  if (!isPlain(saved)) return saved;
+  const want = CONTENT_VERSIONS[key];
+  let doc: Plain = saved;
+  if (want && saved[VERSION_FIELD] !== want) {
+    const keep = KEEP_ON_UPGRADE[key] ?? [];
+    doc = Object.fromEntries(keep.filter((k) => k in saved).map((k) => [k, saved[k]]));
+  }
+  const { [VERSION_FIELD]: _drop, ...rest } = doc;
+  void _drop;
+  return rest;
 }
 
 async function loadSaved(key: ContentKey): Promise<unknown> {
@@ -92,7 +126,7 @@ export async function getContent<K extends ContentKey>(
   key: K
 ): Promise<(typeof CONTENT_DEFAULTS)[K]> {
   const defaults = CONTENT_DEFAULTS[key];
-  return deepMerge(defaults, await loadSaved(key));
+  return deepMerge(defaults, currentShape(key, await loadSaved(key)));
 }
 
 export async function saveContent(key: ContentKey, data: unknown): Promise<void> {
@@ -100,6 +134,8 @@ export async function saveContent(key: ContentKey, data: unknown): Promise<void>
   const clean = cleanLinks(data) as Plain;
   if (key === "seo") normaliseSeoSettings(clean);
   if (key === "redirects") normaliseRedirects(clean);
+  const version = CONTENT_VERSIONS[key];
+  if (version) clean[VERSION_FIELD] = version;
   if (await hasMongo()) {
     await ContentModel.findOneAndUpdate(
       { key },
@@ -135,10 +171,9 @@ export async function renameCategorySlug(oldSlug: string, newSlug: string): Prom
   };
 
   for (const key of Object.keys(CONTENT_DEFAULTS) as ContentKey[]) {
-    const saved = await loadSaved(key);
-    if (!isPlain(saved)) continue;
-    const next = rewrite(saved);
-    if (JSON.stringify(next) !== JSON.stringify(saved)) await saveContent(key, next);
+    const current = await getContent(key);
+    const next = rewrite(current);
+    if (JSON.stringify(next) !== JSON.stringify(current)) await saveContent(key, next);
   }
 }
 

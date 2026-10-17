@@ -8,6 +8,11 @@ export interface LinkSuggestion {
   href: string;
 }
 
+export interface EntryRef {
+  title: string;
+  slug: string;
+}
+
 /** Shared lookups the content editors need (media library, categories, internal URLs). */
 export interface AdminEnv {
   media: MediaItem[];
@@ -15,6 +20,9 @@ export interface AdminEnv {
   onMediaChanged: () => void;
   categories: Category[];
   linkSuggestions: LinkSuggestion[];
+  /** Pages and posts that can be picked into menus. */
+  pages: EntryRef[];
+  posts: EntryRef[];
 }
 
 export const AdminEnvContext = createContext<AdminEnv>({
@@ -23,6 +31,8 @@ export const AdminEnvContext = createContext<AdminEnv>({
   onMediaChanged: () => {},
   categories: [],
   linkSuggestions: [],
+  pages: [],
+  posts: [],
 });
 
 export const useAdminEnv = () => useContext(AdminEnvContext);

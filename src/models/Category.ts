@@ -5,6 +5,8 @@ export interface ICategory extends Document {
   name: string;
   description: string;
   parent?: string;
+  image?: string;
+  cardText?: string;
   seo?: Record<string, unknown>;
   createdAt: Date;
 }
@@ -14,6 +16,8 @@ const CategorySchema: Schema = new Schema({
   name: { type: String, required: true },
   description: { type: String, default: "" },
   parent: { type: String, default: "" },
+  image: { type: String, default: "" },
+  cardText: { type: String, default: "" },
   seo: { type: Schema.Types.Mixed, default: {} },
   createdAt: { type: Date, default: Date.now },
 });

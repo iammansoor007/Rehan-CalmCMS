@@ -1,16 +1,13 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Article, Category, HomepageContent } from "@/types/cms";
+import { Category, HomepageContent } from "@/types/cms";
 import { pickCategories } from "@/lib/categoryTree";
-import { slugify } from "@/lib/slugify";
 import { Sparkles } from "lucide-react";
 
 interface CategoryBarProps {
   categoriesSection: HomepageContent["categoriesSection"];
   categories: Category[];
-  /** Used to borrow a picture for each category card (its newest post with an image). */
-  articles: Article[];
 }
 
 export function SectionHead({ badge, title, subtitle }: { badge?: string; title: string; subtitle?: string }) {
@@ -27,10 +24,8 @@ export function SectionHead({ badge, title, subtitle }: { badge?: string; title:
   );
 }
 
-export function CategoryBar({ categoriesSection, categories, articles }: CategoryBarProps) {
+export function CategoryBar({ categoriesSection, categories }: CategoryBarProps) {
   const display = pickCategories(categories, categoriesSection.categorySlugs);
-  const imageFor = (cat: Category) =>
-    articles.find((a) => a.img && (slugify(a.category) === cat.slug || a.category === cat.name))?.img || "";
 
   return (
     <section id="categories" className="py-[100px] bg-white">
@@ -43,7 +38,8 @@ export function CategoryBar({ categoriesSection, categories, articles }: Categor
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5">
           {display.map((cat) => {
-            const img = imageFor(cat);
+            const img = cat.image || "";
+            const text = cat.cardText || cat.description;
             return (
               <Link
                 key={cat.slug}
@@ -66,8 +62,8 @@ export function CategoryBar({ categoriesSection, categories, articles }: Categor
                   )}
                 </div>
                 <h3 className="font-heading font-semibold text-base text-brand-dark leading-tight mb-1">{cat.name}</h3>
-                {categoriesSection.showDescriptions && cat.description && (
-                  <p className="text-[0.82rem] text-brand-muted leading-[1.4] line-clamp-2">{cat.description}</p>
+                {categoriesSection.showDescriptions && text && (
+                  <p className="text-[0.82rem] text-brand-muted leading-[1.4] line-clamp-2">{text}</p>
                 )}
               </Link>
             );

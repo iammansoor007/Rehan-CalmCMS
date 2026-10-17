@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Edit, ExternalLink, Plus, Save, Trash2 } from "lucide-react";
 import { Category, SeoMeta } from "@/types/cms";
 import { SeoPanel } from "./SeoPanel";
+import { ImageField } from "./fields";
 import { useToast } from "@/components/layout/Toast";
 import { useConfirm } from "./ConfirmDialog";
 import { slugify, slugifyInput } from "@/lib/slugify";
@@ -36,6 +37,8 @@ export function CategoriesSection({ categories, onChanged }: CategoriesSectionPr
   const [slug, setSlug] = useState("");
   const [parent, setParent] = useState("");
   const [description, setDescription] = useState("");
+  const [image, setImage] = useState("");
+  const [cardText, setCardText] = useState("");
   const [seo, setSeo] = useState<SeoMeta>({});
   const [saving, setSaving] = useState(false);
 
@@ -53,6 +56,8 @@ export function CategoriesSection({ categories, onChanged }: CategoriesSectionPr
     setSlug("");
     setParent("");
     setDescription("");
+    setImage("");
+    setCardText("");
     setSeo({});
   };
 
@@ -62,6 +67,8 @@ export function CategoriesSection({ categories, onChanged }: CategoriesSectionPr
     setSlug(cat.slug);
     setParent(cat.parent || "");
     setDescription(cat.description || "");
+    setImage(cat.image || "");
+    setCardText(cat.cardText || "");
     setSeo(cat.seo || {});
     document.getElementById("admin-main")?.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -97,6 +104,8 @@ export function CategoriesSection({ categories, onChanged }: CategoriesSectionPr
         slug: finalSlug,
         parent,
         description: description.trim(),
+        image,
+        cardText: cardText.trim(),
         seo,
       }),
     });
@@ -204,6 +213,30 @@ export function CategoriesSection({ categories, onChanged }: CategoriesSectionPr
                 onChange={(e) => setDescription(e.target.value)}
                 className={inputCls}
               />
+            </div>
+
+            <div className="space-y-3 pt-1">
+              <ImageField
+                label="Homepage card image"
+                value={image}
+                onChange={(url) => setImage(url)}
+                aspect="aspect-[16/9]"
+                hint="Shown on this category card in “Browse Categories” on the homepage."
+              />
+              <div>
+                <label className={labelCls}>Card text</label>
+                <input
+                  type="text"
+                  maxLength={80}
+                  placeholder="e.g. Techniques and benefits"
+                  value={cardText}
+                  onChange={(e) => setCardText(e.target.value)}
+                  className={inputCls}
+                />
+                <p className="text-[11px] text-brand-muted mt-1">
+                  A short line under the name on the card. Empty uses the description.
+                </p>
+              </div>
             </div>
 
             <SeoPanel

@@ -28,12 +28,15 @@ export interface NavItem {
   newTab?: boolean;
 }
 
-export interface CategoryDropdownItem {
+/** One entry of a menu. Nested `children` become dropdown items (WordPress-style). */
+export interface MenuItem {
+  id: string;
   label: string;
   href: string;
-  slug: string;
-  /** Nesting level for sub-categories (0 = top level). */
-  depth?: number;
+  /** What it was created from; informational ("custom" for typed-in links). */
+  type?: "page" | "post" | "category" | "custom";
+  newTab?: boolean;
+  children?: MenuItem[];
 }
 
 export interface NavCta {
@@ -42,30 +45,15 @@ export interface NavCta {
   href: string;
 }
 
-/** What the admin edits. */
+/** The header menu, as built in the admin (Appearance → Menus). */
 export interface NavigationSettings {
-  homeLabel: string;
-  links: NavItem[];
-  categoriesMenu: {
-    visible: boolean;
-    label: string;
-    /** Categories to list, in order. Empty = all. */
-    categorySlugs: string[];
-    showAllLink: boolean;
-    allLabel: string;
-  };
+  items: MenuItem[];
   showSearch: boolean;
   cta: NavCta;
 }
 
-/** What the header renders (settings resolved against the real categories). */
-export interface NavigationContent {
-  homeLabel: string;
-  links: NavItem[];
-  categoriesMenu: { visible: boolean; label: string; items: CategoryDropdownItem[] };
-  showSearch: boolean;
-  cta: NavCta;
-}
+/** What the header renders (same shape, links cleaned up). */
+export type NavigationContent = NavigationSettings;
 
 export interface ArticleSection {
   heading: string;
@@ -206,6 +194,10 @@ export interface Category {
   description: string;
   /** Slug of the parent category (empty / undefined for top-level categories). */
   parent?: string;
+  /** Picture for the homepage category card. */
+  image?: string;
+  /** Short line for the homepage category card (falls back to the description). */
+  cardText?: string;
   seo?: SeoMeta;
 }
 
@@ -233,13 +225,8 @@ export interface HomepageContent {
   hero: {
     visible: boolean;
     badge: string;
-    titleStart: string;
-    titleHighlight: string;
-    titleEnd: string;
+    title: string;
     subtitle: string;
-    searchPlaceholder: string;
-    popularTags: string[];
-    stats: { label: string; value: string }[];
     /** Hero image (defaults to the bundled hero.png). */
     image?: string;
     imageAlt?: string;
@@ -249,10 +236,6 @@ export interface HomepageContent {
     /** Second (outlined) button. Hidden when text or link is empty. */
     secondaryCtaText?: string;
     secondaryCtaHref?: string;
-    /** Small caption card floating over the hero image. Hidden when title is empty. */
-    cardLabel?: string;
-    cardTitle?: string;
-    cardHref?: string;
   };
   categoriesSection: {
     visible: boolean;
@@ -272,7 +255,6 @@ export interface HomepageContent {
     count: number;
     /** Only list posts from these categories. Empty = all categories. */
     categorySlugs: string[];
-    showSidebar: boolean;
     linkText: string;
     linkHref: string;
   };
@@ -381,26 +363,24 @@ export interface ContactContent {
   };
 }
 
+export interface FooterColumn {
+  id: string;
+  title: string;
+  items: MenuItem[];
+}
+
 export interface FooterSettings {
   visible: boolean;
   brandDescription: string;
-  quickLinksTitle: string;
-  quickLinks: NavItem[];
-  showCategories: boolean;
-  categoriesTitle: string;
-  /** Categories to list, in order. Empty = the first six. */
-  categorySlugs: string[];
-  legalTitle: string;
-  legalLinks: NavItem[];
+  /** Link columns shown to the right of the brand block. */
+  columns: FooterColumn[];
   badgeText: string;
   copyright: string;
   bottomText: string;
   showSocial: boolean;
 }
 
-export interface FooterContent extends Omit<FooterSettings, "categorySlugs"> {
-  categoryLinks: NavItem[];
-}
+export type FooterContent = FooterSettings;
 
 export interface SidebarSettings {
   showSearch: boolean;
